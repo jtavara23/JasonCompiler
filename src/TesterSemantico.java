@@ -6,11 +6,12 @@ PARSER_BEGIN(Tester)
 import java.io.*;
 import java.text.ParseException;
 import java.util.ArrayList;
+import jdk.nashorn.internal.parser.Token;
 public class Tester {
 
 	public final static tabelaSimbolos ts = new tabelaSimbolos();
 	public  static ArrayList<String> palavrasReservadas = new ArrayList<String>();
-	public  static ArrayList<String> dataType = new ArrayList<String>();
+	public  static ArrayList<String> tipoPrimitivo = new ArrayList<String>();
 
 	public static boolean isInteger(String str){
 		try {
@@ -46,8 +47,7 @@ public class Tester {
 			palavrasReservadas.add("procedure");palavrasReservadas.add("write");palavrasReservadas.add("enduntil");
 			palavrasReservadas.add("returns");palavrasReservadas.add("var");
 
-			dataType.add("real");dataType.add("integer");dataType.add("string");
-	
+                        tipoPrimitivo.add("real");dataType.add("integer");dataType.add("string");
 			Tester analizador = new Tester( System.in ) ;
 			analizador.Program();
 			System.out.println("Compilado com exito!");
@@ -228,8 +228,25 @@ void Program():
 */
 
 
-
-
+        
+token Identifier():
+{
+    Token t;
+}
+{
+    t = <IDENTIFIER>
+    {
+        String id = t.image.toString();
+        if(palavrasReservadas.contains(id.toLowerCase())||tipoPrimitivo.contains(id.toLowerCase()))
+            System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tO identifier nao pode ser uma palavra reservada!");
+        else if(ts.existType(id))
+            System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t Identifier "+t.image.toString()+" nao pode ser um dataType!!!..");
+        else if(ts.existId(id))
+            System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tVariavel "+t.image.toString()+" ja foi definido.");
+        return t;
+    }          
+}
+    
 //Programa e Bloco
 
 //1.  Program ::= Header DeclSec Block
@@ -244,26 +261,29 @@ void Program():
 
 //2.  Header ::= program identifier ;
 void Header():
-{Token t;}
 {
-	<PROGRAM>
-	t = <IDENTIFIER>
-	{
-		String id = t.image.toString();
-		if(!palavrasReservadas.contains(id)){
-			ts.addDescritor(id,"PROGRAM");
-		}
-		else
-			System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tO identifier nao pode ser uma palavra reservada!");
+    Token t;
+}
+{
+    <PROGRAM>
+    t = <IDENTIFIER>
+    {
+        String id = t.image.toString();
+	if(!palavrasReservadas.contains(id.toLowerCase())&&!tipoPrimitivo.contains(id.toLowerCase()))
+        {
+            ts.addDescritor(id,"PROGRAM");
 	}
-	<PONTOVIRGULA>	
+	else
+            System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tO identifier nao pode ser uma palavra reservada!");
+    }     
+    <PONTOVIRGULA>	
 }
 
 //3.  Block ::= begin Statements end
 void Block():
 {}
 {
-	<BEGIN> Statements() <END>
+    <BEGIN> Statements() <END>
 }
 
 //Declarações//
@@ -295,16 +315,14 @@ void TypeDecl():
 	Token t;
 }
 {
-	t=<IDENTIFIER>
+	t=Identifier()
 	{
-		String id=t.image.toString();
-		if(palavrasReservadas.contains(id))
-			System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tTipo "+t.image.toString()+" o identificador nao pode ser uma palavra reservada!");
-		else
-			if(!ts.addDescritor(id,"TYPE") && ts.existType(id))
-				System.out.println("Erro semantico na linha: "+t.beginLine+", coluna: "+t.beginColumn+".\n\tO Tipo "+t.image.toString()+" ja foi definido nesse contexto.");			
+		String idTipo=t.image.toString();
+		if(!palavrasReservadas.contains(idTipo.toLowerCase())&&!tipoPrimitivo.contains(idTipo.toLowerCase()))
+			if(!ts.addDescritor(idTipo,"TYPE"))
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tO Tipo "+t.image.toString()+" ja foi definido nesse contexto.");
 	}
-	TypeSpecification(id)
+	TypeSpecification(idTipo)
 }
 
 //8.  TypeSpecification ::= (ArraySpecification |  RecordSpecification)
@@ -315,7 +333,7 @@ void TypeSpecification(String idTipo):
 }
 
 //9.  ArraySpecification ::= array DataType “[“numericliteral”]”;
-void ArraySpecification(String idArray):
+void ArraySpecification(String idArray)://///////////////////////////WARDIOLA :V
 {
 	Token t;
 }
@@ -323,26 +341,35 @@ void ArraySpecification(String idArray):
 	<ARRAY>
 	t = DataType()
 	{
-		Descritor desArrayTipo = ts.searchDataType(idArray);
-		desArrayTipo.getCategoria().set("ELEMTYPE","ARRAY");
-		if(idArray.compareToIgnoreCase(t.image.toString())==0)
-			System.out.println("Erro semantico na linha: "+t.beginLine+", coluna: "+t.beginColumn+".\n\tO tipo do array precisa ser diferente do identificador do novo tipo.");
-        else if(ts.existType(t.image.toString()))
-		{ 	
-			Descritor arrayTipo = ts.initDataType(t.image.toString());
-			((ArrayTipo)((Tipo)desArrayTipo.getCategoria()).get("ELEMTYPE")).set("ELEMTYPE",arrayTipo);
-		} else {
-			System.out.println("Erro semantico na linha: "+t.beginLine+", coluna: "+t.beginColumn+".\n\tO tipo nao existe!");
-		}
+            if(ts.existId(idArray))//Verifica si el id existe en el escopo actual
+            {              
+                Descritor desIdArray = ts.searchScopeAtual(idArray);
+                if(desIdArray.getRotulo().compareToIgnoreCase("TYPE")==0)// Verifica si es un Type 
+                {
+                    if(idArray.compareToIgnoreCase(t.image.toString())==0)	
+                        System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t O DataType: " +t.image.toString()+" precisa  ser diferente ao identifier.");
+                    else 
+                    { 	
+                        desIdArray.getCategoria().set("ELEMTYPE","ARRAY");		
+                        Descritor dataTipo = ts.initDataType(t.image.toString());			
+                        ((ArrayTipo)((Tipo)desIdArray.getCategoria()).get("ELEMTYPE")).set("ELEMTYPE",dataTipo);				
+                    }
+                }
+            }
 	}
 	<ABRECOL>
 	t = <INTEIRO>//INTEIRO
-	{
-		int size = Integer.parseInt(t.image.toString());
-		if(size<1)
-			System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t Indice fora dos limites de um inteiro positivo: "+t.image.toString());
+	{		
+		if(!isInteger(t.image.toString()))
+			System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t O indice nao é um inteiro: "+t.image.toString());
 		else
-			((ArrayTipo)((Tipo)desArrayTipo.getCategoria()).get("ELEMTYPE")).set("SIZE",size);
+                {
+                    int size = Integer.parseInt(t.image.toString());
+                    if(size>0)
+                        ((ArrayTipo)((Tipo)desArrayTipo.getCategoria()).get("ELEMTYPE")).set("SIZE",size);            
+                    else
+                        System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t O indice nao pode ser negativog: "+t.image.toString());
+                }
 	}
 	<FECHACOL>
 	<PONTOVIRGULA>
@@ -353,8 +380,12 @@ void RecordSpecification(String idRecord):
 {}
 {
 	{
-		Descritor desRecordTipo = ts.searchDataType(idRecord);
-		desRecordTipo.getCategoria().set("ELEMTYPE","RECORD");
+            if(ts.existId(idRecord))//Verifica si el id existe en el escopo actual
+            {              
+ 		Descritor desRecordTipo = ts.searchDataType(idRecord);
+                if(desRecordTipo.getRotulo().compareToIgnoreCase("TYPE")==0)// Verifica si es un Type           
+                    desRecordTipo.getCategoria().set("ELEMTYPE","RECORD");
+            }
 	}
 	<RECORD>
 	VarDecls(idRecord, true)
@@ -396,7 +427,7 @@ Token DataType():
 	|t = <INTEGER>
 	|t = <IDENTIFIER>
 	{
-		if(! ts.existType(t.image.toString()))
+		if(!ts.existType(t.image.toString()))
 		{
 			System.out.println("Erro semantico na linha: "+t.beginLine+", coluna: "+t.beginColumn+".\n\tTipo "+t.image.toString()+" nao esta definido.");
 		}
@@ -414,13 +445,13 @@ void IdList(String idTipo, Token dataT, boolean origenRecord):
 	Token t;
 }
 {
-	t=<IDENTIFIER> 
+	t=Identifier()
 	{
 		addRecordData(idTipo,dataT, t, origenRecord);
 	}
 	(
 	<VIRGULA>
-	t=<IDENTIFIER>
+	t=Identifier()
 	{
 		addRecordData(idTipo,dataT, t, origenRecord);
 	}
@@ -434,42 +465,32 @@ void addRecordData(String idTipo,Token dataT, Token id, boolean origenRecord):
 	{	
 		if(origenRecord)//TYPERECORD
 		{
-			Descritor desIdTipo = ts.searchDataType(idTipo);				
-			if(dataType.contains(dataT.image.toString()))
-			{
+                    if(ts.existId(idTipo))//Verifica si el id existe en el escopo actual       
+                    {
+                        Descritor desIdTipo = ts.searchScopeAtual(idTipo);
+                        if(desIdTipo.getRotulo().compareToIgnoreCase("TYPE")==0)// Verifica si es un Type           				
+                            if(ts.existType(dataT.image.toString()))
+                            {
 				Descritor dataTipo = ts.initDataType(dataT.image.toString());
-				if(palavrasReservadas.contains(id.image.toString()))
-					System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\t Identifier: "+id.image.toString()+" nao pode ser uma palavra chave!!!.");
-				else if(dataType.contains(id.image.toString()))
-					System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\t Identifier "+id.image.toString()+" nao pode ser um dataType!!!..");
-				else
+				if(!palavrasReservadas.contains(id.image.toString())&&!ts.existType(id.image.toString()))
 				{
 					boolean result =((RecordTipo)((Tipo)desIdTipo.getCategoria()).get("ELEMTYPE")).set(id.image.toString(),dataTipo);
-					if(!result){
-						System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\tIdentificador "+id.image.toString()+" duplicado.");
-					}	
+					if(!result)
+						System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\tIdentificador "+id.image.toString()+" ja foi definido.");	
 				}				
-			}
-			/*
-			else
-			{
-				System.out.println("Erro semantico na linha "+dataT.beginLine+", coluna "+dataT.beginColumn+".\n\tTipo "+dataT.image.toString()+" nao esta definido.");
-			}*/
+                            }
+                    }
 		}
 		else //VARIABLES
 		{
-			if(!dataType.contains(dataT.image.toString())&&ts.existId(id.image.toString()))
-				System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\tVariavel "+id.image.toString()+" ja foi definido.");
-			else if(dataType.contains(dataT.image.toString()))
+			if(ts.existType(dataT.image.toString())&&!ts.existId(id.image.toString())
+                                &&!palavrasReservadas.contains(id.image.toString().toLowerCase())
+                                &&!ts.existType(id.image.toString()))//Solo si existe dataType y el id no fue definido en el mismo escopo
 			{
 				Descritor dataTipo = ts.initDataType(dataT.image.toString());
-				if(!ts.addDescritor(id.image.toString(),"VARIABLE"))
-					System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\tVariavel "+id.image.toString()+" ja foi definido..");
-				else
-					((Variavel)ts.searchDataType(id.image.toString()).getCategoria()).set("ELEMTYPE",dataTipo);		
+				if(ts.addDescritor(id.image.toString(),"VARIABLE"))
+					((Variavel)ts.searchVariable(id.image.toString()).getCategoria()).set("ELEMTYPE",dataTipo);		
 			}
-			else if(palavrasReservadas.contains(id.image.toString()))
-				System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\tTipo "+id.image.toString()+" o identifier nao pode ser uma palavra chave!!!.");
 		}
 	}
 }
@@ -630,19 +651,26 @@ void FunctionBlock():
 
 //Comandos //
 
+//27. Statements ::= Statement {; Statement}
 void Statements():
 {}
 {
 	Statement()(<PONTOVIRGULA> Statement())*
 }
 
+//28. SpecialStatements ::= Statement; {Statement} ReturnStatement 
 void SpecialStatements():
 {}
 {
 	(Statement()<PONTOVIRGULA>)+ReturnStatement()
 }
 
-
+/*29. Statement ::= [(read  Variable | set  Variable = Expresion
+| write  Variable
+| if Condition then Statements ElseClause
+| while Condition do Statements endwhile
+| until Condition do Statements enduntil
+| call identifier ArgList)]*/
 void Statement():
 {
 	Token t;
@@ -683,30 +711,35 @@ void Statement():
 	)]
 }
 
+//30. ElseClause ::= (else Statements endif | endif
 void ElseClause():
 {}
 {
 	(<ELSE> Statements() <ENDIF> | <ENDIF>)
 }
 
+//31. ReturnStatement ::= return “(“ Condition “)”
 void ReturnStatement():
 {}
 {
 	<RETURN> <ABREPAR> Condition() <FECPAR>
 }
 
+//32. ArgList ::= [“(“ Arguments “)”]
 void ArgList():
 {}
 {
 	[<ABREPAR> Arguments() <FECPAR>]
 }
 
+//33. ArgListSpecial ::= “(“ Arguments “)” 
 void ArgListSpecial():
 {}
 {
 	<ABREPAR> Arguments() <FECPAR>
 }
 
+//34. Arguments ::= Argument {, Argument}
 void Arguments():
 {}
 {
@@ -715,24 +748,28 @@ void Arguments():
 
 //Expressões//
 
+//35. Condition ::= CompoundCondition {\ CompoundCondition}
 void Condition():
 {}
 {
     CompoundCondition() (<OU> CompoundCondition())*
 }
 
+//36. CompoundCondition ::= SimpleCondition {& SimpleCondition}
 void CompoundCondition():
 {}
 {
     SimpleCondition() (<E> SimpleCondition())*
 }
 
+//37. SimpleCondition ::= Expression [RelOp Expression]
 void SimpleCondition():
 {}
 {
     Expression(null) [RelOp() Expression(null)]
 }
 
+//38. Expression ::= Term {AddOp Term}
 Token Expression(Token t0):
 {
 	Token t1, t2;
@@ -787,6 +824,7 @@ Token Expression(Token t0):
 	}
 }
 
+//39. Term ::= Unary {MultOp Unary}
 Token Term(Token t0):
 {
 	Token t1, t2;
@@ -834,6 +872,7 @@ Token Term(Token t0):
 	}
 }
 
+//40. Unary ::= [+ | -] Factor
 Token Unary():
 {
 	Token t;
@@ -846,6 +885,7 @@ Token Unary():
     }
 }
 
+//41. Factor ::= [~](identifier (ArgListSpecial | Variable) | numericliteral | stringliteral| “(“Condition”)”)
 Token Factor():
 {
 	Token t;
@@ -875,6 +915,7 @@ Token Factor():
 	}
 }
 
+//42. Variable ::=[“[“ Expression “]”]{.identifier [“[“ Expression “]”]}
 void Variable():
 {
 	Token t;
@@ -888,6 +929,7 @@ void Variable():
     ] (<DOT> (<IDENTIFIER> [<ABRECOL> Expression(null) <FECHACOL>]))*
 }
 
+//43. RelOp ::= (= | ! | > | < | <= | >=)
 String RelOp():
 {Token t;}
 {
@@ -897,6 +939,7 @@ String RelOp():
 	}
 }
 
+//44. AddOp ::= (+ | -)
 String AddOp():
 {Token t;}
 {
@@ -906,6 +949,7 @@ String AddOp():
 	}
 }
 
+//45. MultOp ::=  (* | /)
 String MultOp():
 {Token t;}
 {
@@ -915,6 +959,7 @@ String MultOp():
 	}
 }
 
+//46. Argument ::= Condition
 void Argument():
 {}
 {

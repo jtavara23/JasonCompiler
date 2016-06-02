@@ -42,7 +42,7 @@ public class tabelaSimbolos {
          id = id.toUpperCase();
          if(scopeAtual >=0 && !existId(id))
          {
-             levelsScope.get(scopeAtual).put(id, new Descritor(id, rotulo));
+                levelsScope.get(scopeAtual).put(id, new Descritor(id, rotulo));
              return true;
          }
          return false;
@@ -73,8 +73,12 @@ public class tabelaSimbolos {
     {
         id = id.toUpperCase();
         for(int scope = scopeAtual; scope >= 0; scope--)
-            if(levelsScope.get(scope).containsKey(id))
-                return (Descritor) levelsScope.get(scope).get(id);
+            if(levelsScope.get(scope).containsKey(id))//TYPE
+                {
+                    Descritor  desTipo = levelsScope.get(scope).get(id);
+                    if(desTipo.getId().compareToIgnoreCase(id)==0&&desTipo.getRotulo().compareToIgnoreCase("TYPE")==0)
+                        return desTipo;
+                }
         return null;
     }
     public Descritor initDataType(String rotulo)//Retorna um descritor do tipo solicitado
@@ -91,7 +95,8 @@ public class tabelaSimbolos {
                 if(levelsScope.get(level).containsKey(rotulo))//TYPE
                 {
                     Descritor  desTipo = levelsScope.get(level).get(rotulo);
-                    return desTipo;
+                    if(desTipo.getId().compareToIgnoreCase(rotulo)==0&&desTipo.getRotulo().compareToIgnoreCase("TYPE")==0)
+                        return desTipo;
                 }
                 level--;
             }
