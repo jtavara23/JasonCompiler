@@ -882,9 +882,6 @@ Token Factor():/// FALTA SEGUIR IMPLENTANDO
 		|t=<INTEIRO>	
 		|t=<CADEIA> 
 		|aux = <NAO> t = Factor() 
-		{
-			return null;
-		}
 		|<ABREPAR> Condition() <FECPAR> 
 		|Variable(false, o))
 	{return t;}
