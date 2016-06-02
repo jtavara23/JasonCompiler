@@ -1,0 +1,45 @@
+program test;
+{comentário}
+
+types 
+	identRecord  record 
+					real A, B;
+					integer C; 
+			    end;
+ 	indentArray array string [10];
+
+variables 
+	identRecord D; 
+	integer E, F;
+	indentArray M;
+
+procedure G; 
+parameters integer H;
+var integer I;
+begin
+	
+end;
+
+function J returns integer;
+begin 
+	; return ( ~ nome )
+end;
+
+BEGIN
+	read K.L;
+	set M = -N / 21;
+	write O [+32];
+	if outroNome = P \ (43 < 54) & 65 then 
+		write Q
+	else 
+		if variavel > outraVariavel then 
+		endif
+	endif;
+	while maisUmNome + 76 ! 87 do 
+	endwhile;
+
+	until muitosNomes > 98 - 321 * 432 do 
+	enduntil;
+
+	call R (mandaNome >= 543, ultimoNome <= 654)
+END.
