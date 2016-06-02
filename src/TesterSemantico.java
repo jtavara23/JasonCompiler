@@ -546,7 +546,12 @@ void SubProgramDeclSec(String nameSubPrograma):
 {
 	nParametros=ParamDeclSec() 
 	{
-		ts.search(ts.getscopeAtual()-1, nameSubPrograma).getCategoria().set("NPARAMS", nParametros);
+  		if(ts.searchId(ts.getscopeAtual()-1,nameSubPrograma))    
+                {
+                    String subProg = ts.search(ts.getscopeAtual()-1,nameSubPrograma).getRotulo();
+                    if(subProg.compareTo("FUNCTION")==0||subProg.compareTo("PROCEDURE")==0)       
+                        ts.search(ts.getscopeAtual()-1, nameSubPrograma).getCategoria().set("NPARAMS", nParametros);
+                }
 	}
 	DeclSec()
 }
@@ -620,17 +625,17 @@ String FunctionHeader():
 	Token tipoR;	
 }
 {
-	<FUNCTION> id= <IDENTIFIER> <RETURNS> tipoR=DataType() <PONTOVIRGULA>
+	<FUNCTION> id= Identifier() <RETURNS> tipoR=DataType() <PONTOVIRGULA>
 	{
 		String nameF = id.image.toString();
-		if(!ts.addDescritor(nameF, "FUNCTION"))
-		{
-			System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\tIdentificador "+id.image.toString()+" ja foi definido nesse contexto.");
-		}
-		else
-		{
+		ts.addDescritor(nameF, "FUNCTION");
+		if(ts.existId(nameF))
+                {       
+                    if(ts.searchScopeAtual(nameF).getRotulo().compareTo("FUNCTION")==0&&ts.existType(tipoR.image.toString()))
+                    {
 			((Function)ts.searchScopeAtual(nameF).getCategoria()).set("RTYPE", ts.initDataType(tipoR.image.toString()));
-		}
+                    }
+                }
 		ts.addLevelScope();
 		return nameF;
 	}

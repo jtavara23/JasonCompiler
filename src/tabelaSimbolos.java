@@ -166,6 +166,14 @@ public class tabelaSimbolos {
         else
             return null;
     }
+    public boolean searchId(int level, String id)//Busca en una nivel de escope especifico
+    {
+        id = id.toUpperCase();
+        if(levelsScope.get(level).containsKey(id))
+            return true; 
+        else
+            return false;
+    }
     public Integer getscopeAtual() {
         return scopeAtual;
     }
