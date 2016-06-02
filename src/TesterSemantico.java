@@ -657,11 +657,11 @@ void Statements():
 	Statement()(<PONTOVIRGULA> Statement())*
 }
 
-//28. SpecialStatements ::= Statement; {Statement} ReturnStatement 
+//28. SpecialStatements ::= Statement; {Statement;} ReturnStatement 
 void SpecialStatements():
 {}
 {
-	(Statement()<PONTOVIRGULA>)+ReturnStatement()
+	(LOOKAHEAD(2)Statement()<PONTOVIRGULA>)+ReturnStatement()
 }
 
 /*29. Statement ::= [(read  Variable | set  Variable = Expresion
@@ -676,21 +676,21 @@ void Statement():
 	String id;
 }
 { 
-	[(<READ> t = <IDENTIFIER> Variable()
+	[(<READ> Variable()
 	{
 		id = t.image.toString();
 		if(!ts.existId(id))
 			if(!ts.existGlobalId(id))
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tIdentificador não definido.");
 	}
-	| <SET> t = <IDENTIFIER> Variable() <IGUAL> Expression(t)
+	| <SET> Variable() <IGUAL> Expression(t)
 	{
 		id = t.image.toString();
 		if(!ts.existId(id))
 			if(!ts.existGlobalId(id))
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tIdentificador não definido.");
 	}
-	| <WRITE> t = <IDENTIFIER> Variable()
+	| <WRITE>Variable()
 	{
 		id = t.image.toString();
 		if(!ts.existId(id))
@@ -871,7 +871,7 @@ Token Term(Token t0):
 	}
 }
 
-//40. Unary ::= [+ | -] Factor
+//40. [+ | -] Factor
 Token Unary():
 {
 	Token t;
@@ -884,55 +884,141 @@ Token Unary():
     }
 }
 
-//41. Factor ::= [~](identifier (ArgListSpecial | Variable) | numericliteral | stringliteral| “(“Condition”)”)
+//41. Factor ::=  <Identifier> <ArgListSpecial> | numericLiteral | stringLiteral | “~”<Factor> | “(” <Condition> “)” | <Variable>
 Token Factor():
 {
 	Token t;
+	int nparams = 0;
+	Symbol o = null;
+	String typeName = null;
+	Symbol type = null;
+	Token aux;
 }
 {
-	(t = <IDENTIFIER> (ArgListSpecial()
-	{
-		return t;
+	(
+		LOOKAHEAD(2) t = <IDENTIFIER> nparams = ArgListSpecial(t) 
+		//Java code
+		{
+			Symbol s = st.search(t.image.toString());
+			if(s == null){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tFuncao "+t.image.toString()+" nao foi declarada.");
+			}else if(!s.getTypeName().equals("FUNCTION") && nparams > 0){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t"+t.image.toString()+" nao eh uma funcao.");
+			}else if(s.getTypeName().equals("FUNCTION") && !s.getType().get("NPARAMS").equals(nparams)){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tNumero de argumentos passados para a funcao "+t.image.toString()+" eh diferente do esperado.");
+			}else{
+				type = (Symbol)s.getType().get("RTYPE");
+				typeName = type.getId();
+			}
+		}
+		|
+		<FLOAT> {typeName = "REAL";}/*Java code*/|
+		<INT>	{typeName = "INTEGER";}/*Java code*/|
+		<STRING_LITERAL> {typeName = "STRING";}/*Java code*/|
+		aux = <NOT> typeName = Factor() 
+		/*Java code*/
+		{
+			if(printLogicOperandError(typeName, aux))
+				return null;
+		}
+		
+		|
+		<LPAR>typeName = Condition() <RPAR> |
+		typeName = Variable(false, o)
+	)
+	{return typeName;}
+}
+
+//42. Variable ::=<Identifier> [“[” <Expression> “]”](“.”<Variable>)*
+void Variable(boolean recursion, Symbol field):
+{
+	Token t;
+	Symbol type = null;
+	String typeName = null;
+	boolean hasIndex;
+}
+{
+	{hasIndex = false;}//Java code
+	t = <IDENTIFIER> (<ABRECOL>Expression() <FECHACOL>{hasIndex = true;}/*Java code*/)?
+	//Java code
+	{	
+		if(!recursion){//trata identificador inicial
+			Symbol s = st.search(t.image.toString());
+			field = s;
+			
+			if(s == null || s.getType() == null){
+				field = null;
+			}else{
+				field = (Symbol) s.getType().get("ELEMTYPE");//s eh do tipo Variable
+				type = field;
+			}
+
+			while(field != null && (field.getTypeName().equals("TYPE") 
+					|| (field.getTypeName().equals("ARRAY") && hasIndex))){
+				field = (Symbol) field.getType().get("ELEMTYPE");
+			}
+			
+			//System.out.println(s.getTypeName());
+			if(s == null){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t"+t.image.toString()+" nao foi declarado.");
+			}else if(!s.getTypeName().equals("VARIABLE") && !s.getTypeName().equals("PARAM") && !s.getTypeName().equals("FUNCTION")){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t"+t.image.toString()+" nao pode ser usado nesse contexto.\n\tEsperado:\n\tFuncao, parametro ou variavel.");
+			}else if(s.getTypeName().equals("FUNCTION") && !s.getType().get("NPARAMS").equals(0)){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tNumero de argumentos passados para a funcao "+t.image.toString()+" eh diferente do esperado.");
+			}
+		}else{//trata campos
+			if(field == null){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tImpossivel acessar o campo "+t.image.toString()+" porque um ou mais campos anteriores nao foram declarados corretamente.");
+			}else if(field.getTypeName().equals("ARRAY")){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tImpossivel acessar o campo "+t.image.toString()+" a partir de um array.");
+			}else if(!field.getTypeName().equals("RECORD") || field.getType().get(t.image.toString()) == null){
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tCampo "+t.image.toString()+" nao foi declarado.");
+				field = null;
+			}else{
+				field = (Symbol) field.getType().get(t.image.toString());
+				type = field;
+				while(field != null && (field.getTypeName().equals("TYPE") 
+										|| (field.getTypeName().equals("ARRAY") && hasIndex))){
+					field = (Symbol) field.getType().get("ELEMTYPE");
+				}
+			}
+		}
 	}
-	| Variable())
-	|t = <INTEIRO>
+	
+	(LOOKAHEAD(2)<DOT>typeName = Variable(true, field))
 	{
-		return t;
-	}
-	|t = <FLOAT>
-	{
-		return t;
-	}
-	|t = <CADEIA>
-	{
-		return t;
-	}
-	| <ABREPAR> Condition() <FECPAR>
-	| <NAO> Factor())
-	{
-		return null;
+		if(typeName == null){
+			if(type == null || type.getType() == null)
+				typeName = "_NULO_";
+			else{
+				typeName = type.getTypeName();
+				if(typeName.equals("TYPE") && hasIndex){
+					type = (Symbol)type.getType().get("ELEMTYPE");
+					typeName = type.getTypeName();
+				}
+				
+				if(typeName.equals("FUNCTION"))
+					type = ((Symbol)type.getType().get("RTYPE"));
+				else if(typeName.equals("ARRAY") && hasIndex){
+					type = ((Symbol)type.getType().get("ELEMTYPE"));
+				}
+				else if(typeName.equals("VARIABLE"))
+					type = ((Symbol)type.getType().get("ELEMTYPE"));
+				
+				typeName = type.getId();
+			}
+			//System.out.println("line: "+t.beginLine+", tipo: "+typeName);			
+		}
+		return typeName;
 	}
 }
 
-//42. Variable ::=[“[“ Expression “]”]{.identifier [“[“ Expression “]”]}
-void Variable():
-{
-	Token t;
-}
-{
-    [<ABRECOL> t = Expression(null) <FECHACOL>
-    {
-    	if(((ts.searchDataType(t.image.toString())).getRotulo()).compareToIgnoreCase("INTEGER")!=0)
-    		System.out.println("Erro semantico na linha: "+t.beginLine+", coluna: "+t.beginColumn+".\n\tIndice deve ser inteiro!");
-    }
-    ] (<DOT> (<IDENTIFIER> [<ABRECOL> Expression(null) <FECHACOL>]))*
-}
 
 //43. RelOp ::= (= | ! | > | < | <= | >=)
 String RelOp():
 {Token t;}
 {
-	(t = <IGUAL> |t =  <DIFERENTE> |t =  <MAIOR> |t =  <MENOR> |t =  <MENORIGUAL> |t =  <MAIORIGUAL>)
+	(t = <IGUAL> |t =  <DIFERENTE> |t =  <MAIOR> |t =  <MENOR> | LOOKAHEAD(2)t=<MENORIGUAL> |LOOKAHEAD(2)t=<MAIORIGUAL>)
 	{
 		return t.image.toString();
 	}
