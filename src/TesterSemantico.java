@@ -229,7 +229,7 @@ void Program():
 
 
         
-token Identifier():
+token Identifier(): // Genera el mensage de error cuando el id es una palabra reservada o ya existe (Usar solo para variables o nombres de funciones y proc)
 {
     Token t;
 }
@@ -483,14 +483,14 @@ void addRecordData(String idTipo,Token dataT, Token id, boolean origenRecord):
 		}
 		else //VARIABLES
 		{
-			if(ts.existType(dataT.image.toString())&&!ts.existId(id.image.toString())
-                                &&!palavrasReservadas.contains(id.image.toString().toLowerCase())
-                                &&!ts.existType(id.image.toString()))//Solo si existe dataType y el id no fue definido en el mismo escopo
-			{
-				Descritor dataTipo = ts.initDataType(dataT.image.toString());
-				if(ts.addDescritor(id.image.toString(),"VARIABLE"))
-					((Variavel)ts.searchVariable(id.image.toString()).getCategoria()).set("ELEMTYPE",dataTipo);		
-			}
+                    if(ts.existType(dataT.image.toString())&&!ts.existId(id.image.toString())
+                            &&!palavrasReservadas.contains(id.image.toString().toLowerCase())
+                            &&!ts.existType(id.image.toString()))//Solo si existe dataType y el id no fue definido en el mismo escopo
+                    {
+			Descritor dataTipo = ts.initDataType(dataT.image.toString());
+			if(ts.addDescritor(id.image.toString(),"VARIABLE"))
+                            ((Variavel)ts.searchVariable(id.image.toString()).getCategoria()).set("ELEMTYPE",dataTipo);		
+                    }
 		}
 	}
 }
@@ -528,13 +528,11 @@ String ProcHeader():
 }
 {
 	<PROCEDURE> 
-	t=<IDENTIFIER> 
+	t=Identifier()
 	<PONTOVIRGULA>
 	{
 		String nameP = t.image.toString();
-		if(!ts.addDescritor(nameP, "PROCEDURE")){
-			System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tIdentificador "+t.image.toString()+" ja foi definido nesse contexto.");
-		}
+		ts.addDescritor(nameP, "PROCEDURE");
 		ts.addLevelScope();
 		return nameP;
 	}
@@ -548,7 +546,7 @@ void SubProgramDeclSec(String nameSubPrograma):
 {
 	nParametros=ParamDeclSec() 
 	{
-		ts.search(ts.getscopeAtual()-1, nameSubPrograma).getCategoria().set("NPARAMATROS", nParametros);
+		ts.search(ts.getscopeAtual()-1, nameSubPrograma).getCategoria().set("NPARAMS", nParametros);
 	}
 	DeclSec()
 }
@@ -592,19 +590,15 @@ int ParamDecl(int nParametros):
 	}
 	] 
 	dataT=DataType()	
-	id=<IDENTIFIER> 
+	id=Identifier();
 	<PONTOVIRGULA>
 	{
-		if(!ts.addDescritor(id.image.toString(), "PARAM"))
-		{
-			System.out.println("Erro semantico na linha "+id.beginLine+", coluna "+id.beginColumn+".\n\tParametro "+id.image.toString()+" ja foi definido nesse contexto.");
-		}
-		else
-		{
-			//verificar si el datatype existe
-			Descritor descP = ts.searchScopeAtual(id.image.toString());
-			((Parametro)descP.getCategoria()).set("ELEMTYPE", ts.initDataType(dataT.image.toString()));
-			((Parametro)descP.getCategoria()).set("TCLASS", classParam);
+                if(!palavrasReservadas.contains(id.toLowerCase())&&!ts.existType(id)&&!ts.existId(id)&&ts.existType(dataT.image.toString()))
+		{       
+                        ts.addDescritor(id.image.toString(), "PARAM");
+			Descritor descParam = ts.searchScopeAtual(id.image.toString());
+			((Parametro)descParam.getCategoria()).set("ELEMTYPE", ts.initDataType(dataT.image.toString()));
+			((Parametro)descParam.getCategoria()).set("TCLASS", classParam);
 		}
 		return nParametros+1;
 	}	
