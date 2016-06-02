@@ -124,7 +124,7 @@ public class tabelaSimbolos {
             return false;
         }
     }
-    public Descritor searchVariable(String id)//Retorna un descritor del dataType solicitado
+    public Descritor searchVariable(String id)//Retorna un descritor del varaible solicitado
     {
         id = id.toUpperCase(); 
         int level=scopeAtual;
@@ -141,7 +141,7 @@ public class tabelaSimbolos {
         }
         return null;
     }  
-    public boolean existVariable(String id)//Retorna un descritor del dataType solicitado
+    public boolean existVariable(String id)//Retorna un descritor del variable solicitado
     {
         id = id.toUpperCase(); 
         int level=scopeAtual;
@@ -151,13 +151,65 @@ public class tabelaSimbolos {
             if(levelsScope.get(level).containsKey(id))//TYPE
             {
                 Descritor  desTipo=levelsScope.get(level).get(id);
-                if(desTipo.getRotulo().compareToIgnoreCase("VARIABLE")==0)
+                if(desTipo.getRotulo().compareToIgnoreCase("VARIABLE")==0||(desTipo.getRotulo().compareToIgnoreCase("PARAM")==0&&level==scopeAtual))
                     return true;   
             }
             level--;
         }
         return false;
     }
+    public boolean existFunction(String id)//Retorna un descritor del variable solicitado
+    {
+        id = id.toUpperCase(); 
+        int level=scopeAtual;
+        while(level >= 0)
+        {
+                
+            if(levelsScope.get(level).containsKey(id))//TYPE
+            {
+                Descritor  desTipo=levelsScope.get(level).get(id);
+                if(desTipo.getRotulo().compareToIgnoreCase("FUNCTION")==0)
+                    return true;   
+            }
+            level--;
+        }
+        return false;
+    }
+    public Descritor search(String id)
+    {
+        id = id.toUpperCase(); 
+        int level=scopeAtual;
+        while(level >= 0)
+        {
+                
+            if(levelsScope.get(level).containsKey(id))//TYPE
+            {
+                Descritor  desTipo=levelsScope.get(level).get(id);
+                if(desTipo.getRotulo().compareToIgnoreCase("VARIABLE")==0||(desTipo.getRotulo().compareToIgnoreCase("PARAM")==0&&level==scopeAtual)
+                    ||desTipo.getRotulo().compareToIgnoreCase("FUNCTION")==0    )
+                    return desTipo;   
+            }
+            level--;
+        }
+        return null;
+    } 
+    public boolean exist(String id)//Retorna un descritor del variable solicitado
+    {
+        id = id.toUpperCase(); 
+        int level=scopeAtual;
+        while(level >= 0)
+        {
+                
+            if(levelsScope.get(level).containsKey(id))//TYPE
+            {
+                Descritor  desTipo=levelsScope.get(level).get(id);
+                if(desTipo.getRotulo().compareToIgnoreCase("TYPE")!=0&&desTipo.getRotulo().compareToIgnoreCase("PROCEDURE")!=0)
+                    return true;   
+            }
+            level--;
+        }
+        return false;
+    }    
     public Descritor search(int level, String id)//Busca en una nivel de escope especifico
     {
         id = id.toUpperCase();

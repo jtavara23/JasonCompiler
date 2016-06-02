@@ -930,76 +930,80 @@ Token Factor():
 }
 
 //42. Variable ::=<Identifier> [“[” <Expression> “]”](“.”<Variable>)*
-void Variable(boolean recursion, Symbol field):
+void Variable(boolean inicial, Descritor tipoVar):
 {
 	Token t;
-	Symbol type = null;
+	Descritor type = null;
 	String typeName = null;
-	boolean hasIndex;
-}
-{
-	{hasIndex = false;}//Java code
-	t = <IDENTIFIER> (<ABRECOL>Expression() <FECHACOL>{hasIndex = true;}/*Java code*/)?
+	boolean index;
+//}
+//{
+	{index = false;}//Java code
+	t = <IDENTIFIER> (<ABRECOL>Expression() <FECHACOL>{index = true;}/*Java code*/)?
 	//Java code
 	{	
-		if(!recursion){//trata identificador inicial
-			Symbol s = st.search(t.image.toString());
-			field = s;
-			
-			if(s == null || s.getType() == null){
-				field = null;
-			}else{
-				field = (Symbol) s.getType().get("ELEMTYPE");//s eh do tipo Variable
-				type = field;
-			}
-
-			while(field != null && (field.getTypeName().equals("TYPE") 
-					|| (field.getTypeName().equals("ARRAY") && hasIndex))){
-				field = (Symbol) field.getType().get("ELEMTYPE");
-			}
-			
-			//System.out.println(s.getTypeName());
-			if(s == null){
-				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t"+t.image.toString()+" nao foi declarado.");
-			}else if(!s.getTypeName().equals("VARIABLE") && !s.getTypeName().equals("PARAM") && !s.getTypeName().equals("FUNCTION")){
-				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t"+t.image.toString()+" nao pode ser usado nesse contexto.\n\tEsperado:\n\tFuncao, parametro ou variavel.");
-			}else if(s.getTypeName().equals("FUNCTION") && !s.getType().get("NPARAMS").equals(0)){
+		if(inicial)// Si fuera la variable inicial
+                {
+                    tipoVar=null;
+                    if(palavrasReservadas.contains(t.toLowerCase())||tipoPrimitivo.contains(t.toLowerCase()))           
+                        System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t O indentificador "+t.image.toString()+" nao pode ser palavra chave.");
+                    else if(ts.existType(t.toLowerCase()))
+                        System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t O indentificador "+t.image.toString()+" nao pode ser um tipo de dato.");
+                    else 
+                    {
+                        if(ts.existVariable(t.image.toString()))
+                        {
+                            
+                            Descritor var = ts.search(t.image.toString());
+                            tipoVar = (Descritor) var.getCategoria().get("ELEMTYPE");
+                            type = tipoVar;    
+                            while(tipoVar.getRotulo().compareTo("TYPE")==0|| (tipoVar.getRotulo().compareTo("ARRAY")==0 && index))
+                                tipoVar = (Descritor) tipoVar.getCategoria().get("ELEMTYPE");           
+                            if(!var.getRotulo().equals("VARIABLE") && !var.getRotulo().equals("PARAM") && !var.getRotulo().equals("FUNCTION"))
+				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tO identificador"+t.image.toString()+" nao pode ser usado nesse contexto.\n\tEsperado:\n\tFuncao, parametro ou variavel.");
+                            else if(var.getRotulo().equals("FUNCTION") && !var.getRotulo().get("NPARAMS").equals(0))
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tNumero de argumentos passados para a funcao "+t.image.toString()+" eh diferente do esperado.");
-			}
-		}else{//trata campos
-			if(field == null){
+                        
+                        }             
+                        else
+                            System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t Indentificador "+t.image.toString()+" nao foi declarado ou e um procedimento.");     
+                    }
+		}
+                else
+                {//trata campos
+			if(tipoVar == null){
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tImpossivel acessar o campo "+t.image.toString()+" porque um ou mais campos anteriores nao foram declarados corretamente.");
-			}else if(field.getTypeName().equals("ARRAY")){
+			}else if(tipoVar.getTypeName().equals("ARRAY")){
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tImpossivel acessar o campo "+t.image.toString()+" a partir de um array.");
-			}else if(!field.getTypeName().equals("RECORD") || field.getType().get(t.image.toString()) == null){
+			}else if(!tipoVar.getTypeName().equals("RECORD") || tipoVar.getType().get(t.image.toString()) == null){
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tCampo "+t.image.toString()+" nao foi declarado.");
-				field = null;
+				tipoVar = null;
 			}else{
-				field = (Symbol) field.getType().get(t.image.toString());
-				type = field;
-				while(field != null && (field.getTypeName().equals("TYPE") 
-										|| (field.getTypeName().equals("ARRAY") && hasIndex))){
-					field = (Symbol) field.getType().get("ELEMTYPE");
+				tipoVar = (Symbol) tipoVar.getType().get(t.image.toString());
+				type = tipoVar;
+				while(tipoVar != null && (tipoVar.getTypeName().equals("TYPE") 
+										|| (tipoVar.getTypeName().equals("ARRAY") && index))){
+					tipoVar = (Symbol) tipoVar.getType().get("ELEMTYPE");
 				}
 			}
 		}
 	}
 	
-	(LOOKAHEAD(2)<DOT>typeName = Variable(true, field))
+	(LOOKAHEAD(2)<DOT>typeName = Variable(false, tipoVar))
 	{
 		if(typeName == null){
 			if(type == null || type.getType() == null)
 				typeName = "_NULO_";
 			else{
 				typeName = type.getTypeName();
-				if(typeName.equals("TYPE") && hasIndex){
+				if(typeName.equals("TYPE") && index){
 					type = (Symbol)type.getType().get("ELEMTYPE");
 					typeName = type.getTypeName();
 				}
 				
 				if(typeName.equals("FUNCTION"))
 					type = ((Symbol)type.getType().get("RTYPE"));
-				else if(typeName.equals("ARRAY") && hasIndex){
+				else if(typeName.equals("ARRAY") && index){
 					type = ((Symbol)type.getType().get("ELEMTYPE"));
 				}
 				else if(typeName.equals("VARIABLE"))
