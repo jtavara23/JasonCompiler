@@ -6,7 +6,6 @@ PARSER_BEGIN(Tester)
 import java.io.*;
 import java.text.ParseException;
 import java.util.ArrayList;
-import jdk.nashorn.internal.parser.Token;
 public class Tester {
 
 	public final static tabelaSimbolos ts = new tabelaSimbolos();
@@ -34,8 +33,8 @@ public class Tester {
 		return false;
 	}
 
-	/*static public void main(String args[]) {
-	try*/
+	static public void main(String args[]) {
+	try
 		{
 			palavrasReservadas.add("array");palavrasReservadas.add("endwhile");palavrasReservadas.add("program");
 			palavrasReservadas.add("begin");palavrasReservadas.add("function");palavrasReservadas.add("read");
@@ -51,14 +50,14 @@ public class Tester {
 			Tester analizador = new Tester( System.in ) ;
 			analizador.Program();
 			System.out.println("Compilado com exito!");
-		}/*
+		}
 		catch(ParseException e)
 		{
 			System.out.println(e.getMessage());
 			System.out.println("Analisador: Encontrou erros durante a analise!");
 		}
 	}
-}*/
+}
 PARSER_END(Tester)
 
 
@@ -885,69 +884,58 @@ Token Unary():
 }
 
 //41. Factor ::=  <Identifier> <ArgListSpecial> | numericLiteral | stringLiteral | “~”<Factor> | “(” <Condition> “)” | <Variable>
-Token Factor():
+Token Factor():/// FALTA SEGUIR IMPLENTANDO
 {
 	Token t;
 	int nparams = 0;
-	Symbol o = null;
+	Descritor o = null;
 	String typeName = null;
-	Symbol type = null;
+	Descritor type = null;
 	Token aux;
 }
 {
 	(
-		LOOKAHEAD(2) t = <IDENTIFIER> nparams = ArgListSpecial(t) 
-		//Java code
-		{
-			Symbol s = st.search(t.image.toString());
-			if(s == null){
-				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tFuncao "+t.image.toString()+" nao foi declarada.");
-			}else if(!s.getTypeName().equals("FUNCTION") && nparams > 0){
-				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t"+t.image.toString()+" nao eh uma funcao.");
-			}else if(s.getTypeName().equals("FUNCTION") && !s.getType().get("NPARAMS").equals(nparams)){
-				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tNumero de argumentos passados para a funcao "+t.image.toString()+" eh diferente do esperado.");
-			}else{
-				type = (Symbol)s.getType().get("RTYPE");
-				typeName = type.getId();
-			}
-		}
+		LOOKAHEAD(2) t = <IDENTIFIER> ArgListSpecial(t) 
 		|
-		<FLOAT> {typeName = "REAL";}/*Java code*/|
-		<INT>	{typeName = "INTEGER";}/*Java code*/|
-		<STRING_LITERAL> {typeName = "STRING";}/*Java code*/|
+		t=<FLOAT> 
+                |
+		t=<INT>	
+                |
+		t=<STRING_LITERAL> 
+                |
 		aux = <NOT> typeName = Factor() 
-		/*Java code*/
 		{
-			if(printLogicOperandError(typeName, aux))
-				return null;
+                    return null;
 		}
-		
 		|
-		<LPAR>typeName = Condition() <RPAR> |
-		typeName = Variable(false, o)
+		<ABREPAR> Condition() <FECPAR> 
+                |
+		Variable(false, o)
 	)
 	{return typeName;}
 }
 
 //42. Variable ::=<Identifier> [“[” <Expression> “]”](“.”<Variable>)*
-void Variable(boolean inicial, Descritor tipoVar):
+String Variable(boolean inicial, Descritor tipoVar):
 {
 	Token t;
 	Descritor type = null;
 	String typeName = null;
 	boolean index;
-//}
-//{
-	{index = false;}//Java code
+}
+{
+	{
+            index = false;
+        }
 	t = <IDENTIFIER> (<ABRECOL>Expression() <FECHACOL>{index = true;}/*Java code*/)?
 	//Java code
 	{	
 		if(inicial)// Si fuera la variable inicial
                 {
                     tipoVar=null;
-                    if(palavrasReservadas.contains(t.toLowerCase())||tipoPrimitivo.contains(t.toLowerCase()))           
+                    if(palavrasReservadas.contains(t.image.toString().toLowerCase())||tipoPrimitivo.contains(t.toLowerCase()))           
                         System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t O indentificador "+t.image.toString()+" nao pode ser palavra chave.");
-                    else if(ts.existType(t.toLowerCase()))
+                    else if(ts.existType(t.image.toString()))
                         System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t O indentificador "+t.image.toString()+" nao pode ser um tipo de dato.");
                     else 
                     {
@@ -969,49 +957,48 @@ void Variable(boolean inicial, Descritor tipoVar):
                             System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\t Indentificador "+t.image.toString()+" nao foi declarado ou e um procedimento.");     
                     }
 		}
-                else
-                {//trata campos
-			if(tipoVar == null){
+                else//trata campos
+                {
+			if(tipoVar == null)
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tImpossivel acessar o campo "+t.image.toString()+" porque um ou mais campos anteriores nao foram declarados corretamente.");
-			}else if(tipoVar.getTypeName().equals("ARRAY")){
+			else if(tipoVar.getRotulo().equals("ARRAY"))
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tImpossivel acessar o campo "+t.image.toString()+" a partir de um array.");
-			}else if(!tipoVar.getTypeName().equals("RECORD") || tipoVar.getType().get(t.image.toString()) == null){
+			else if(!tipoVar.getRotulo().equals("RECORD") || ((RecordTipo)tipoVar.getCategoria()).get(t.image.toString()) == null){
 				System.out.println("Erro semantico na linha "+t.beginLine+", coluna "+t.beginColumn+".\n\tCampo "+t.image.toString()+" nao foi declarado.");
 				tipoVar = null;
-			}else{
-				tipoVar = (Symbol) tipoVar.getType().get(t.image.toString());
+			}
+                        else 
+                        {
+				tipoVar = (Descritor) tipoVar.getCategoria().get(t.image.toString());
 				type = tipoVar;
-				while(tipoVar != null && (tipoVar.getTypeName().equals("TYPE") 
-										|| (tipoVar.getTypeName().equals("ARRAY") && index))){
-					tipoVar = (Symbol) tipoVar.getType().get("ELEMTYPE");
-				}
+                                while(tipoVar != null&&tipoVar.getRotulo().compareTo("TYPE")==0|| (tipoVar.getRotulo().compareTo("ARRAY")==0 && index))
+                                    tipoVar = (Descritor) tipoVar.getCategoria().get("ELEMTYPE");                      
 			}
 		}
 	}
 	
-	(LOOKAHEAD(2)<DOT>typeName = Variable(false, tipoVar))
+	(LOOKAHEAD(2)<DOT>typeName = Variable(false, tipoVar))*
 	{
-		if(typeName == null){
-			if(type == null || type.getType() == null)
+		if(typeName == null)
+                {
+			if(type == null || type.getCategoria()== null)
 				typeName = "_NULO_";
-			else{
-				typeName = type.getTypeName();
-				if(typeName.equals("TYPE") && index){
-					type = (Symbol)type.getType().get("ELEMTYPE");
-					typeName = type.getTypeName();
-				}
-				
-				if(typeName.equals("FUNCTION"))
-					type = ((Symbol)type.getType().get("RTYPE"));
-				else if(typeName.equals("ARRAY") && index){
-					type = ((Symbol)type.getType().get("ELEMTYPE"));
-				}
+			else
+                        {
+				typeName = type.getRotulo();
+				if(typeName.equals("RECORD")&&index==false )
+                                {
+					type = (Descritor)((RecordTipo)type.getCategoria()).get(t.image.toString());
+					//typeName = type.getRotulo();
+				}	
+                                else if(typeName.equals("FUNCTION"))
+					type = ((Descritor)type.getCategoria().get("RTYPE"));
+				else if(typeName.equals("ARRAY") && index)
+					type = ((Descritor)type.getCategoria().get("ELEMTYPE"));
 				else if(typeName.equals("VARIABLE"))
-					type = ((Symbol)type.getType().get("ELEMTYPE"));
-				
+					type = ((Descritor)type.getCategoria().get("ELEMTYPE"));
 				typeName = type.getId();
-			}
-			//System.out.println("line: "+t.beginLine+", tipo: "+typeName);			
+			}		
 		}
 		return typeName;
 	}
@@ -1083,4 +1070,4 @@ SKIP:
 <~ [ ] >
 }
 
-}//////
+
