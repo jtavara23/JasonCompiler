@@ -28,6 +28,7 @@ public class Tester {
 	public static ArrayList<String> cmd;
 	public static ArrayList<String> ids = new ArrayList<String>();
 	public static ArrayList<Integer> dmem = new ArrayList<Integer>();
+	public static ArrayList<String> parametros = new ArrayList<String>();
 
 	public static boolean isInteger(String str){
 		try {
@@ -914,17 +915,22 @@ void Statement():
 	{
 		msgCondError(tipo1,t);
 	}
-	| <CALL> t = Identifier(false) ArgList(t,true)
+	| <CALL> t = Identifier(false)
 	{
-		Descritor identChpr=ts.searchDataType(t.image.toString());
+		/Descritor identChpr=ts.searchDataType(t.image.toString());
 		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0)
 			addCmd("", "AMEN 1","", "");
-		/*Olhamos si a function ou procedimento tem parametros
+		Olhamos si a function ou procedimento tem parametros
 		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0||ifidentChpr.getRotulo().compareToIgnoreCase("PROCEDURE")==0)
 		{
 			Categoria dataTypeId=identChpr.getCategoria();
-			int nPar=(int)dataTypeId.get(NPARAMS);
-		}		*/	
+			int nPar=(int)dataTypeId.get("NPARAMS");
+			for(int p=0;p<nPar:p++)
+			{
+				Categoria paraChpr=(Categoria)((Descriptor)(dataTypeId.get(p))).getCategoria();
+				parametros.add(paraChpr.get("TCLASS"));
+			}
+		}		
 	}
 	ArgList(t,true)
 	{
@@ -1282,8 +1288,18 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 				break;
 			case 2:
 				for(int i = nivel; i >=0; i--){
-					if(posVariaveis.get(t.image.toString()).get(i) != null){
-						addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+					if(posVariaveis.get(t.image.toString()).get(i) != null)
+					{
+						if(parametros.size()!=0)
+						{
+							if(parametros.get(0).compareToIgnoreCase("REFERENCE")==0)
+								addCmd("", "CREN", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+							else
+								addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+							parametros.remove(0);
+						}
+						else
+							addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
 						flag = 0;
 						break;
 					}
