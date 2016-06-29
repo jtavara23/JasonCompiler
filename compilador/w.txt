@@ -1,0 +1,17 @@
+program a21;
+variables
+real a;
+integer b;
+
+function nome returns real
+parameters
+real a;
+begin
+	write a
+end
+
+begin
+read a;
+read b;
+nome(a)
+end.
