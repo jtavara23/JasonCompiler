@@ -23,6 +23,7 @@ public class Tester {
 	public static int flag = 0;
 	public static int nivel = 0;
 	public static int actualParam = 0;
+	public static ArrayList<String> cmd;
 
 	public static boolean isInteger(String str){
 		try {
@@ -778,7 +779,7 @@ void SpecialStatements(String rType):
 void Statement():
 {
 	Token t;
-	String tipo1, tipo2, arrayType, rotulo;
+	String tipo1, tipo2, arrayType, rotulo, rotulo2;
 }
 { 	
 	
@@ -793,8 +794,13 @@ void Statement():
 	{
 		msgError(tipo1,t);
 	}
-	| <SET> tipo1 = Variable(true, null, false) t = <IGUAL> tipo2 = Expression()
+	|
 	{
+		flag = 5;
+	}
+	<SET> tipo1 = Variable(true, null, false) t = <IGUAL> tipo2 = Expression()
+	{
+		addCmd(cmd.get(0), cmd.get(1), cmd.get(2), cmd.get(3));
 		if(tipo1.compareToIgnoreCase("_NULO_")!=0)
 		{
 			//if(tipo1.compareToIgnoreCase("VETOR")!=0 && tipo1.compareToIgnoreCase("RECORD")!=0)
@@ -830,7 +836,17 @@ void Statement():
 	{
 		msgCondError(tipo1,t);
 	}
-	| t = <WHILE> tipo1 = Condition() <DO> Statements() <ENDWHILE>
+	| t = <WHILE>
+	{
+		rotulo = criarRotulo();
+		rotulo2 = criarRotulo();
+		addCmd(rotulo, "NADA", "", "");
+	}
+	tipo1 = Condition() <DO> Statements() <ENDWHILE>
+	{
+		addCmd("", "DSVS", rotulo, "");
+		addCmd(rotulo2, "NADA", "", "");
+	}
 	{
 		msgCondError(tipo1,t);
 	}
@@ -1192,6 +1208,15 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 				addCmd("", "CREN", "" + nivel, "" + posVariaveis.get(t.image.toString()).get(nivel));
 				flag = 0;
 				break;
+			case 5:
+				cmd = new ArrayList<String>();
+				cmd.add("");
+				cmd.add("ARMZ");
+				cmd.add("" + nivel);
+				cmd.add("" + posVariaveis.get(t.image.toString()).get(nivel));
+				flag = 0;
+				break;
+
 		}
 		if(inicial)// Si fuera la variable inicial
         {       	
