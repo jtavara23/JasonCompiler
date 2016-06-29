@@ -914,7 +914,19 @@ void Statement():
 	{
 		msgCondError(tipo1,t);
 	}
-	| <CALL> t = Identifier(false) ArgList(t)
+	| <CALL> t = Identifier(false) ArgList(t,true)
+	{
+		Descritor identChpr=ts.searchDataType(t.image.toString());
+		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0)
+			addCmd("", "AMEN 1","", "");
+		/*Olhamos si a function ou procedimento tem parametros
+		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0||ifidentChpr.getRotulo().compareToIgnoreCase("PROCEDURE")==0)
+		{
+			Categoria dataTypeId=identChpr.getCategoria();
+			int nPar=(int)dataTypeId.get(NPARAMS);
+		}		*/	
+	}
+	ArgList(t,true)
 	{
 		addCmd("", "CHPR", funtionLabels.get(t.image.toString()), "");
 	}
@@ -960,7 +972,7 @@ void ReturnStatement(String rType):
 }
 
 //32. ArgList ::= [“(“ Arguments “)”]
-void ArgList(Token t):
+void ArgList(Token t,boolean chpr):
 {}
 {
 	[<ABREPAR> Arguments(t) <FECPAR>]
@@ -1280,7 +1292,6 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 			case 3:
 				for(int i = nivel; i >=0; i--){
 					if(posVariaveis.get(t.image.toString()).get(i) != null){
-						addCmd("", "CREN", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
 						flag = 0;
 						break;
 					}
