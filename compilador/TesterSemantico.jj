@@ -17,13 +17,6 @@ public class Tester {
 	public static ArrayList<String> tipoPrimitivo = new ArrayList<String>();
 	public static ArrayList<ArrayList<String>> P = new ArrayList<ArrayList<String>>();
 
-	public static contLabel = 0;
-
-	public String criarRotulo(){
-		contLabel++;
-		return nomeRo= "L"+contLabel;
-	}
-
 	public static boolean isInteger(String str){
 		try {
         	Integer.parseInt(str);
@@ -121,7 +114,7 @@ TOKEN : // OPERADORES //
 	| <MAIORIGUAL : ">=">
 }
 
-/*TOKEN : // NUMEROS
+TOKEN : // NUMEROS
 {
 	<INTEIRO : "0" | ["1"-"9"](<DIGITO>){0,4}>
 	| <FLOAT : (<INTEIRO>)("."(<INTEIRO>))? | ((<INTEIRO>)".") | ("."(<INTEIRO>))>
@@ -131,9 +124,9 @@ TOKEN : // LITERAIS
 {
 	<IDENTIFIER : ["a"-"z","A"-"Z"](["a"-"z","0"-"9","A"-"Z","_"]){0,16}>
 | <CADEIA : ("'"|"\"")["a"-"z","A"-"Z","0"-"9","!","#","$","%","&","(",")","*","+","-",".","/",":",";","<","=",">","?","`","|","~"](["a"-"z","A"-"Z","0"-"9","!","#","$","%","&","(",")","*","+","-",".","/",":",";","<","=",">","?","`","|","~"," "])*("'"|"\"")>
-}*/
+}
 
-TOKEN : //NUMEROS 
+/*TOKEN : //NUMEROS 
 {
 	<INTEIRO : "0" | ["1"-"9"](<DIGITO>)+> // 4 Bytes
 	{ 
@@ -153,15 +146,14 @@ TOKEN : //NUMEROS
 TOKEN : //LITERAIS 
 {
 	<IDENTIFIER : ["a"-"z","A"-"Z"](["a"-"z","0"-"9","A"-"Z","_"])+>//{0,16}
-	{ 
+	{
 		t = image.toString();
 		if(t.length() > 16){
 			System.out.println("Erro semantico na linha "+input_stream.getBeginLine()+", coluna "+input_stream.getBeginColumn()+".\n\tTamanho maximo para identificador excedido.");
 		}
-	}	
+	}
 	| <CADEIA : ("'"|"\"")["a"-"z","A"-"Z","0"-"9","!","#","$","%","&","(",")","*","+","-",".","/",":",";","<","=",">","?","`","|","~"](["a"-"z","A"-"Z","0"-"9","!","#","$","%","&","(",")","*","+","-",".","/",":",";","<","=",">","?","`","|","~"," "])*("'"|"\"")>
-
-}
+}*/
 
 TOKEN : // SYMBOLS //
 {
@@ -439,27 +431,37 @@ void RecordSpecification(String idRecord):
 
 //11. VarDeclSec ::= [variables VarDecls]
 void VarDeclSec():
-{}
 {
-	[<VARIABLES> VarDecls("",false)]
+	int n;
+}
+{
+	[<VARIABLES> n = VarDecls("",false) {addCmd("", "AMEM", "" + n, "");}]
 }
 
 //12. VarDecls ::= (VarDecl)+
-void VarDecls(String idTipo, boolean origenRecord):
-{}
+int VarDecls(String idTipo, boolean origenRecord):
 {
-	(VarDecl(idTipo, origenRecord))+
+	int total = 0, n = 0;
+}
+{
+	(n = VarDecl(idTipo, origenRecord){ total += n;})+
+	{
+		return total;
+	}
 }
 
 //13. VarDecl ::= DataType IdList ;
-void VarDecl(String idTipo, boolean origenRecord):
+int VarDecl(String idTipo, boolean origenRecord):
 { 
-	Token t;
+	Token t; int n;
 }
 {
 	t = DataType()
-	IdList(idTipo, t, origenRecord) 
+	n = IdList(idTipo, t, origenRecord) 
 	<PONTOVIRGULA>
+	{
+		return n;
+	}
 }
 
 //14. DataType ::= (real | integer | identifier | string)
@@ -483,9 +485,9 @@ Token DataType():
 }
 
 //15. IdList ::= identifier {, identifier}
-void IdList(String idTipo, Token dataT, boolean origenRecord):
+int IdList(String idTipo, Token dataT, boolean origenRecord):
 {
-	Token t;
+	Token t; int n = 1;
 }
 {
 	t=Identifier(true)
@@ -497,8 +499,12 @@ void IdList(String idTipo, Token dataT, boolean origenRecord):
 	t=Identifier(true)
 	{
 		addRecordData(idTipo,dataT, t, origenRecord);
+		n++;
 	}
 	)*
+	{
+		return n;
+	}
 }
 
 //Java Code
@@ -549,7 +555,7 @@ void SubProgramDecls():
 void SubProgramDecl():
 {}
 {
-	(ProcDecl() | FunctionDecl())
+	(ProcDecl() | {addCmd("", "AMEM", "1", "");}FunctionDecl())
 	{
 		ts.removeLevelScope();
 	}
@@ -741,14 +747,7 @@ void Statement():
 	}
 	| t = <WRITE> tipo1 = Variable(true, null, false) {msgError(tipo1,t);}
 	| t = <IF> tipo1 = Condition() <THEN> Statements() ElseClause() {msgCondError(tipo1,t);}
-	| 
-
-	{
-		addCmd(criarRotulo, "INPP", "", "");
-	}
-	t = <WHILE> tipo1 = Condition() <DO> Statements() <ENDWHILE> {msgCondError(tipo1,t);}
-	
-
+	| t = <WHILE> tipo1 = Condition() <DO> Statements() <ENDWHILE> {msgCondError(tipo1,t);}
 	| t = <UNTIL> tipo1 = Condition() <DO> Statements() <ENDUNTIL> {msgCondError(tipo1,t);}
 	| <CALL> t = Identifier(false) ArgList(t)
 	)]
@@ -894,6 +893,29 @@ String SimpleCondition():
 {
     tipo1 = Expression() [ top = RelOp() tipo2 = Expression()
     {
+    	switch(top.image.toString()){
+    		case "=":
+    			addCmd("", "CMIG", "", "");
+    			break;
+    		case ">":
+    			addCmd("", "CMMA", "", "");
+    			break;
+    		case "<":
+    			addCmd("", "CMME", "", "");
+    			break;
+    		case ">=":
+    			addCmd("", "CMAG", "", "");
+    			break;
+    		case "<=":
+    			addCmd("", "CMEG", "", "");
+    			break;
+    		case "!":
+    			addCmd("", "CMDG", "", "");
+    			break;
+    	}
+    	addCmd("", "DSVF", "L1", "");
+    }
+    {
     	op = top.image.toString();
     	if(tipo1.compareToIgnoreCase("STRING")==0 || tipo2.compareToIgnoreCase("STRING")==0 || tipo1.compareToIgnoreCase("_NULO_")==0 || tipo1.compareToIgnoreCase("_NULO_")==0){
     		System.out.println("Erro semantico na linha: "+top.beginLine+", coluna: "+top.beginColumn+".\n\tEsperado INTEGER ou REAL!");
@@ -920,6 +942,16 @@ String Expression():
 	tipo1 = Term()
 	(top = AddOp()
 	tipo2 = Term()
+	{
+		switch(top.image.toString()){
+    		case "+":
+    			addCmd("", "SOMA", "", "");
+    			break;
+    		case "-":
+    			addCmd("", "SUBT", "", "");
+    			break;
+		}
+	}
 	{
 		op =top.image.toString();
     	if(op.compareTo("*")==0 || op.compareTo("/")==0){
@@ -951,6 +983,16 @@ String Term():
 	(top = MultOp()
 	tipo2 = Unary()
 	{
+		switch(top.image.toString()){
+    		case "*":
+    			addCmd("", "MULT", "", "");
+    			break;
+    		case "/":
+    			addCmd("", "DIVI", "", "");
+    			break;
+		}
+	}
+	{
 		op =top.image.toString();
     	if(op.compareTo("*")==0 || op.compareTo("/")==0){
     		if(tipo1.compareTo(tipo2)==0)
@@ -981,6 +1023,7 @@ String Unary():
     {
     	return type;
     }
+    
 }
 
 //41. Factor ::=  <Identifier> <ArgListSpecial> | numericLiteral | stringLiteral | “~”<Factor> | “(” <Condition> “)” | <Variable>
@@ -1003,12 +1046,14 @@ String Factor():/// FALTA SEGUIR IMPLENTANDO
 			else
 				return ts.searchDataType(t.image.toString()).getRotulo();
 		}
-		|<FLOAT>
+		|t = <FLOAT>
 		{
+			addCmd("", "CRCT", t.image.toString(), "");
 			return "REAL";
 		}
-		|<INTEIRO>
+		|t = <INTEIRO>
 		{
+			addCmd("", "CRCT", t.image.toString(), "");
 			return "INTEGER";
 		}
 		|<CADEIA> 
@@ -1156,7 +1201,7 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 Token RelOp():
 {Token t;}
 {
-	(t = <IGUAL> |t =  <DIFERENTE> |t =  <MAIOR> |t =  <MENOR> | LOOKAHEAD(2)t=<MENORIGUAL> |LOOKAHEAD(2)t=<MAIORIGUAL>)
+	(t = <IGUAL>|t =  <DIFERENTE>|t =  <MAIOR>|t =  <MENOR>| LOOKAHEAD(2)t=<MENORIGUAL> | LOOKAHEAD(2)t=<MAIORIGUAL>)
 	{
 		return t;
 	}
@@ -1166,7 +1211,7 @@ Token RelOp():
 Token AddOp():
 {Token t;}
 {
-	(t = <ADD> | t = <SUB>)
+	(t = <ADD>| t = <SUB>)
 	{
 		return t;
 	}
@@ -1176,7 +1221,7 @@ Token AddOp():
 Token MultOp():
 {Token t;}
 {
-	(t = <MULT> | t = <DIV>)
+	(t = <MULT>| t = <DIV>)
 	{
 		return t;
 	}
