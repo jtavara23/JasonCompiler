@@ -17,6 +17,13 @@ public class Tester {
 	public static ArrayList<String> tipoPrimitivo = new ArrayList<String>();
 	public static ArrayList<ArrayList<String>> P = new ArrayList<ArrayList<String>>();
 
+	public static contLabel = 0;
+
+	public String criarRotulo(){
+		contLabel++;
+		return nomeRo= "L"+contLabel;
+	}
+
 	public static boolean isInteger(String str){
 		try {
         	Integer.parseInt(str);
@@ -734,7 +741,14 @@ void Statement():
 	}
 	| t = <WRITE> tipo1 = Variable(true, null, false) {msgError(tipo1,t);}
 	| t = <IF> tipo1 = Condition() <THEN> Statements() ElseClause() {msgCondError(tipo1,t);}
-	| t = <WHILE> tipo1 = Condition() <DO> Statements() <ENDWHILE> {msgCondError(tipo1,t);}
+	| 
+
+	{
+		addCmd(criarRotulo, "INPP", "", "");
+	}
+	t = <WHILE> tipo1 = Condition() <DO> Statements() <ENDWHILE> {msgCondError(tipo1,t);}
+	
+
 	| t = <UNTIL> tipo1 = Condition() <DO> Statements() <ENDUNTIL> {msgCondError(tipo1,t);}
 	| <CALL> t = Identifier(false) ArgList(t)
 	)]
