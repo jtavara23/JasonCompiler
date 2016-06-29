@@ -23,11 +23,6 @@ public class Tester {
 	public static int flag = 0;
 	public static int nivel = 0;
 	public static int actualParam = 0;
- 
- 	public String criarRotulo(){
- 		contLabel++;
- 		return "L"+contLabel;
- 	}
 
 	public static boolean isInteger(String str){
 		try {
@@ -263,6 +258,23 @@ Token Identifier(boolean instancia): // Genera el mensage de error cuando el id 
 }
     
 //Programa e Bloco
+
+String criarRotulo():
+{}
+{
+	{
+ 		contLabel++;
+ 		return "L"+contLabel;
+ 	}
+}
+
+String usaRotulo():
+{}
+{
+	{
+ 		return "L"+contLabel;
+ 	}
+}
 
 void addHash(String ident):
 {}
@@ -766,24 +778,21 @@ void SpecialStatements(String rType):
 void Statement():
 {
 	Token t;
-	String tipo1, tipo2, arrayType;
+	String tipo1, tipo2, arrayType, rotulo;
 }
 { 	
 	
 
 
 	[(t = <READ>   
-		{
-			addCmd("", "LEIT", "", "");	
-			flag = 1;
-			
-		}
-		tipo1 = Variable(true, null, false){msgError(tipo1,t);}
-	
-
-
-
-
+	{
+		addCmd("", "LEIT", "", "");	
+		flag = 1;
+	}
+	tipo1 = Variable(true, null, false)
+	{
+		msgError(tipo1,t);
+	}
 	| <SET> tipo1 = Variable(true, null, false) t = <IGUAL> tipo2 = Expression()
 	{
 		if(tipo1.compareToIgnoreCase("_NULO_")!=0)
@@ -799,27 +808,36 @@ void Statement():
 		else
 			System.out.println("Erro semantica na linha: "+t.beginLine+", coluna: "+t.beginColumn+".\n\tVariable inexistente");
 	}
-	
 	| 
-
-		t = <WRITE> 
-		{
-			flag =2;
-		}
-		
-		tipo1 = Variable(true, null, false) 
-
-		{
-			addCmd("","IMPR","","");
-			msgError(tipo1,t);
-		}
-	
-	| t = <IF> tipo1 = Condition() <THEN> Statements() ElseClause() {msgCondError(tipo1,t);}
-	
-	| t = <WHILE> tipo1 = Condition() <DO> Statements() <ENDWHILE> {msgCondError(tipo1,t);}
-	
-	| t = <UNTIL> tipo1 = Condition() <DO> Statements() <ENDUNTIL> {msgCondError(tipo1,t);}
-	
+	t = <WRITE> 
+	{
+		flag =2;
+	}
+	tipo1 = Variable(true, null, false) 
+	{
+		addCmd("","IMPR","","");
+		msgError(tipo1,t);
+	}
+	| t = <IF>
+	{
+		rotulo = criarRotulo();
+	}
+	tipo1 = Condition() <THEN> Statements()
+	{
+		addCmd(rotulo, "NADA", "", "");
+	}
+	ElseClause()
+	{
+		msgCondError(tipo1,t);
+	}
+	| t = <WHILE> tipo1 = Condition() <DO> Statements() <ENDWHILE>
+	{
+		msgCondError(tipo1,t);
+	}
+	| t = <UNTIL> tipo1 = Condition() <DO> Statements() <ENDUNTIL>
+	{
+		msgCondError(tipo1,t);
+	}
 	| <CALL> t = Identifier(false) ArgList(t)
 	)]
 }
@@ -984,7 +1002,7 @@ String SimpleCondition():
     			addCmd("", "CMDG", "", "");
     			break;
     	}
-    	addCmd("", "DSVF", "L1", "");
+    	addCmd("", "DSVF", usaRotulo(), "");
     }
     {
     	op = top.image.toString();
@@ -1108,33 +1126,39 @@ String Factor():/// FALTA SEGUIR IMPLENTANDO
 	Token aux;
 }
 {
-	(
-		LOOKAHEAD(2) t = Identifier(false) ArgListSpecial()
-		{
-			typeName = ts.search(0,t.image.toString()).getRotulo();
-			if(typeName.compareToIgnoreCase("FUNCTION")==0)
-				return ((Descritor)ts.search(0,t.image.toString()).getCategoria().get("RTYPE")).getRotulo();
-			else
-				return ts.searchDataType(t.image.toString()).getRotulo();
+	(LOOKAHEAD(2) t = Identifier(false) ArgListSpecial()
+	{
+		typeName = ts.search(0,t.image.toString()).getRotulo();
+		if(typeName.compareToIgnoreCase("FUNCTION")==0){
+			return ((Descritor)ts.search(0,t.image.toString()).getCategoria().get("RTYPE")).getRotulo();
+		} else {
+			return ts.searchDataType(t.image.toString()).getRotulo();
 		}
-		|t = <FLOAT>
-		{
-			addCmd("", "CRCT", t.image.toString(), "");
-			return "REAL";
-		}
-		|t = <INTEIRO>
-		{
-			addCmd("", "CRCT", t.image.toString(), "");
-			return "INTEGER";
-		}
-		|<CADEIA> 
-		{
-			return "STRING";
-		}
-		|aux = <NAO> typeName = Factor() 
-		|<ABREPAR> Condition() <FECPAR> 
-		|typeName = Variable(true, o,false))
-	{return typeName;}
+	}
+	|t = <FLOAT>
+	{
+		addCmd("", "CRCT", t.image.toString(), "");
+		return "REAL";
+	}
+	|t = <INTEIRO>
+	{
+		addCmd("", "CRCT", t.image.toString(), "");
+		return "INTEGER";
+	}
+	|<CADEIA> 
+	{
+		return "STRING";
+	}
+	|aux = <NAO> typeName = Factor() 
+	|<ABREPAR> Condition() <FECPAR> 
+	|
+	{
+		flag = 2;
+	}
+	typeName = Variable(true, o,false))
+	{
+		return typeName;
+	}
 }
 
 //42. Variable ::=<Identifier> [“[” <Expression> “]”](“.”<Variable>)*
@@ -1151,28 +1175,24 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
         index = false;
 	}
 	t = Identifier(false) (<ABRECOL>nIndex=<INTEIRO> <FECHACOL>{index = true;}/*Java code*/)?
-	
-
-
-	//Java code
+		//Java code
 	{	
 		switch(flag){
-			case 0 : 	break;
-			case 1 : 	addCmd("", "ARMZ", ""+nivel, ""+posVariaveis.get(t.image.toString()).get(nivel));	
-						
-						flag = 0;
-						break;
-
-			case 2:  	addCmd("", "CRVL", ""+nivel, ""+posVariaveis.get(t.image.toString()).get(nivel));	
-						addCmd("","IMPR","","");
-						flag = 0;
-						break;
-
-			case 3:  	addCmd("", "CREN", ""+nivel, ""+posVariaveis.get(t.image.toString()).get(nivel));	
-						flag = 0;
-						break;
+			case 0 :
+				break;
+			case 1 :
+				addCmd("", "ARMZ", "" + nivel, "" + posVariaveis.get(t.image.toString()).get(nivel));
+				flag = 0;
+				break;
+			case 2:
+				addCmd("", "CRVL", "" + nivel, "" + posVariaveis.get(t.image.toString()).get(nivel));
+				flag = 0;
+				break;
+			case 3:
+				addCmd("", "CREN", "" + nivel, "" + posVariaveis.get(t.image.toString()).get(nivel));
+				flag = 0;
+				break;
 		}
-
 		if(inicial)// Si fuera la variable inicial
         {       	
             tipoVar=null;
