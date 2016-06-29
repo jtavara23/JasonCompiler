@@ -19,11 +19,15 @@ public class Tester {
 	public static ArrayList<String> tipoPrimitivo = new ArrayList<String>();
 	public static ArrayList<ArrayList<String>> P = new ArrayList<ArrayList<String>>();
 	public static Map<String, Map<Integer,Integer > > posVariaveis = new HashMap<String, Map<Integer,Integer > >();
+	public static Map<String, String> funtionLabels = new HashMap<String, String>();
 	public static int contLabel = 0;
 	public static int flag = 0;
 	public static int nivel = 0;
-	public static int actualParam = 0;
+	public static int actualVar = 0;
+	public static int actualParam = -3;
 	public static ArrayList<String> cmd;
+	public static ArrayList<String> ids = new ArrayList<String>();
+	public static ArrayList<Integer> dmem = new ArrayList<Integer>();
 
 	public static boolean isInteger(String str){
 		try {
@@ -53,7 +57,7 @@ public class Tester {
 			palavrasReservadas.add("begin");palavrasReservadas.add("function");palavrasReservadas.add("read");
 			palavrasReservadas.add("then");palavrasReservadas.add("call");palavrasReservadas.add("if");
 			palavrasReservadas.add("types");palavrasReservadas.add("do");palavrasReservadas.add("record");
-			palavrasReservadas.add("until");palavrasReservadas.add("else");palavrasReservadas.add("parameterS");
+			palavrasReservadas.add("until");palavrasReservadas.add("else");palavrasReservadas.add("parameters");
 			palavrasReservadas.add("return");palavrasReservadas.add("variables");palavrasReservadas.add("end");
 			palavrasReservadas.add("set");palavrasReservadas.add("while");palavrasReservadas.add("endif");
 			palavrasReservadas.add("procedure");palavrasReservadas.add("write");palavrasReservadas.add("enduntil");
@@ -93,7 +97,7 @@ TOKEN: // PALAVRAS CHAVE //
 	| <RECORD: "record">
 	| <UNTIL: "until">
 	| <ELSE: "else">
-	| <PARAMETERS: "parameterS">
+	| <PARAMETERS: "parameters">
 	| <RETURN: "return">
 	| <VARIABLES: "variables">
 	| <END: "end">
@@ -258,8 +262,6 @@ Token Identifier(boolean instancia): // Genera el mensage de error cuando el id 
     }          
 }
     
-//Programa e Bloco
-
 String criarRotulo():
 {}
 {
@@ -282,10 +284,23 @@ void addHash(String ident):
 {
 	{
 		Map myMap = new HashMap<Integer, Integer>();
-        myMap.put(nivel,actualParam);
-		actualParam++;
+        myMap.put(nivel,actualVar);
+		actualVar++;
 		posVariaveis.put(ident,myMap);
+	}
+}
 
+void addHashParam(int nParametros):
+{}
+{
+	{
+		for(int i = 0; i < nParametros; i++) {
+			Map myMap = new HashMap<Integer, Integer>();
+	        myMap.put(nivel,actualParam);
+			actualParam--;
+			posVariaveis.put(ids.get(ids.size()-1),myMap);
+			ids.remove(ids.size()-1);
+		}
 	}
 }
 
@@ -322,6 +337,8 @@ void geraCodigo():
 		}
 	}
 }
+
+//Programa e Bloco
 
 //1.  Program ::= Header DeclSec Block
 void Program():
@@ -363,15 +380,29 @@ void Block():
 {}
 {
     <BEGIN> Statements() <END>
+    {
+    	addCmd("", "DMEM", "" + dmem.get(dmem.size()-1), "");
+    	dmem.remove(dmem.size()-1);
+    }
 }
 
 //Declarações//
 
 //4.  DeclSec ::= TypeDeclSec VarDeclSec SubProgramDecls
 void DeclSec():
-{}
 {
-	TypeDeclSec() VarDeclSec() SubProgramDecls()
+	String rotulo = "";
+}
+{
+	TypeDeclSec() VarDeclSec()
+	{
+		rotulo = criarRotulo();
+		addCmd("", "DSVS", rotulo, "");
+	}
+	SubProgramDecls()
+	{
+		addCmd(rotulo, "NADA", "", "");
+	}
 }
 
 //5.  TypeDeclSec ::= [types TypeDecls]
@@ -476,13 +507,12 @@ void VarDeclSec():
 	{
 		flag = 4;
 	}
-
 	n = VarDecls("",false)
-
 	{
 	 	addCmd("", "AMEM", "" + n, "");
+	 	dmem.add(n);
 	 	flag = 0;
-	 	actualParam = 0;
+	 	actualVar = 0;
 	}
 	]
 }
@@ -606,21 +636,43 @@ void SubProgramDecls():
 
 //17. SubProgramDecl ::= (ProcDecl | FunctionDecl)
 void SubProgramDecl():
-{}
 {
-	(ProcDecl() | FunctionDecl())
+	String rotulo;
+	int nParametros;
+}
+{
 	{
+		rotulo = criarRotulo();
+		addCmd(rotulo, "NADA", "", "");
+		nivel++;
+		addCmd("", "ENPR", "" + nivel, "");
+	}
+	(nParametros = ProcDecl()
+	{
+		addCmd("", "RTPR", "" + nParametros, "");
+	}
+	| FunctionDecl())
+	{
+		nivel--;
 		ts.removeLevelScope();
 	}
 }
 
 //18. ProcDecl ::= ProcHeader SubProgramDeclSec Block;
-void ProcDecl():
+int ProcDecl():
 {
 	String nameP;
+	int nParametros;
 }
 {
-	nameP=ProcHeader() SubProgramDeclSec(nameP) Block() <PONTOVIRGULA>
+	nameP=ProcHeader()
+	{
+		funtionLabels.put(nameP, usaRotulo());
+	}
+	nParametros = SubProgramDeclSec(nameP) Block() <PONTOVIRGULA>
+	{
+		return nParametros;
+	}
 }
 
 //19. ProcHeader ::= procedure identifier ;
@@ -641,7 +693,7 @@ String ProcHeader():
 }
 
 //20. SubProgramDeclSec ::= ParamDeclSec DeclSec
-void SubProgramDeclSec(String nameSubPrograma):
+int SubProgramDeclSec(String nameSubPrograma):
 {
 	int nParametros=0;
 }
@@ -656,6 +708,9 @@ void SubProgramDeclSec(String nameSubPrograma):
                 }
 	}
 	DeclSec()
+	{
+		return nParametros;
+	}
 }
 
 //21. ParamDeclSec ::= [parameters ParamDecls]
@@ -666,6 +721,7 @@ int ParamDeclSec(String nameSubPrograma):
 {
 	[<PARAMETERS> nParametros=ParamDecls(nameSubPrograma)]
 	{
+		addHashParam(nParametros);
 		return nParametros;
 	}
 }
@@ -676,7 +732,7 @@ int ParamDecls(String nameSubPrograma):
 	int nParametros=0;
 }
 {
-	(ParamDecl(nParametros,nameSubPrograma))+
+	(nParametros = ParamDecl(nParametros,nameSubPrograma))+
 	{
 		return nParametros;
 	}
@@ -708,6 +764,7 @@ int ParamDecl(int nParametros,String nameSubPrograma):
 			Descritor subProgram = ts.search(ts.getscopeAtual()-1,nameSubPrograma);
 			subProgram.getCategoria().set(id.image.toString(),descParam);
 		}
+	ids.add(id.image.toString());
 	return nParametros+1;
 	}
 }
@@ -830,11 +887,14 @@ void Statement():
 	}
 	tipo1 = Condition() <THEN> Statements()
 	{
+		rotulo2 = criarRotulo();
+		addCmd("", "DSVS", rotulo2, "");
 		addCmd(rotulo, "NADA", "", "");
 	}
 	ElseClause()
 	{
 		msgCondError(tipo1,t);
+		addCmd(rotulo2, "NADA", "", "");
 	}
 	| t = <WHILE>
 	{
@@ -855,6 +915,9 @@ void Statement():
 		msgCondError(tipo1,t);
 	}
 	| <CALL> t = Identifier(false) ArgList(t)
+	{
+		addCmd("", "CHPR", funtionLabels.get(t.image.toString()), "");
+	}
 	)]
 }
 void msgError(String tipo, Token t):
@@ -1197,23 +1260,43 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 			case 0 :
 				break;
 			case 1 :
-				addCmd("", "ARMZ", "" + nivel, "" + posVariaveis.get(t.image.toString()).get(nivel));
-				flag = 0;
+				for(int i = nivel; i >=0; i--){
+					if(posVariaveis.get(t.image.toString()).get(i) != null){
+						addCmd("", "ARMZ", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+						flag = 0;
+						break;
+					}
+				}
 				break;
 			case 2:
-				addCmd("", "CRVL", "" + nivel, "" + posVariaveis.get(t.image.toString()).get(nivel));
-				flag = 0;
+				for(int i = nivel; i >=0; i--){
+					if(posVariaveis.get(t.image.toString()).get(i) != null){
+						addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+						flag = 0;
+						break;
+					}
+				}
 				break;
 			case 3:
-				addCmd("", "CREN", "" + nivel, "" + posVariaveis.get(t.image.toString()).get(nivel));
-				flag = 0;
+				for(int i = nivel; i >=0; i--){
+					if(posVariaveis.get(t.image.toString()).get(i) != null){
+						addCmd("", "CREN", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+						flag = 0;
+						break;
+					}
+				}
 				break;
 			case 5:
 				cmd = new ArrayList<String>();
 				cmd.add("");
 				cmd.add("ARMZ");
-				cmd.add("" + nivel);
-				cmd.add("" + posVariaveis.get(t.image.toString()).get(nivel));
+				for(int i = nivel; i >=0; i--){
+					if(posVariaveis.get(t.image.toString()).get(i) != null){
+						cmd.add("" + i);
+						cmd.add("" + posVariaveis.get(t.image.toString()).get(i));
+						break;
+					}
+				}
 				flag = 0;
 				break;
 
