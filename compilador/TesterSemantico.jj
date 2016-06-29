@@ -917,7 +917,7 @@ void Statement():
 	}
 	| <CALL> t = Identifier(false)
 	{
-		/Descritor identChpr=ts.searchDataType(t.image.toString());
+		Descritor identChpr=ts.searchDataType(t.image.toString());
 		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0)
 			addCmd("", "AMEN 1","", "");
 		Olhamos si a function ou procedimento tem parametros
