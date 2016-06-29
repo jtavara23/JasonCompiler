@@ -16,6 +16,12 @@ public class Tester {
 	public static ArrayList<String> palavrasReservadas = new ArrayList<String>();
 	public static ArrayList<String> tipoPrimitivo = new ArrayList<String>();
 	public static ArrayList<ArrayList<String>> P = new ArrayList<ArrayList<String>>();
+	public static contLabel = 0;
+ 
+ 	public String criarRotulo(){
+ 		contLabel++;
+ 		return nomeRo= "L"+contLabel;
+ 	}
 
 	public static boolean isInteger(String str){
 		try {
