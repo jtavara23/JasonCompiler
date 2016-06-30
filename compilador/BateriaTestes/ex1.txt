@@ -1,0 +1,18 @@
+program ex1;
+variables
+	integer n,k;
+	integer f1,f2,f3;
+begin
+	read n;
+	set f1=0; 
+	set f2=1;
+	set k=1;
+	while k <= n do
+		set f3= f1+f2;
+		set f1=f2;
+		set f2=f3;
+		set k=k+1
+	endwhile;
+	write n;
+	write f1
+end.

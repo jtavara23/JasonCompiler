@@ -143,7 +143,7 @@ public interface TesterConstants {
     "\"record\"",
     "\"until\"",
     "\"else\"",
-    "\"parameterS\"",
+    "\"parameters\"",
     "\"return\"",
     "\"variables\"",
     "\"end\"",

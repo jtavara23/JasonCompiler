@@ -1,0 +1,26 @@
+Program ex10;
+variables
+	integer k;
+	integer x;
+Procedure p;
+	parameters
+		integer n; 
+		var integer g;
+	variables
+		integer h;
+	Begin
+		if n < 2 then 
+			set g=g+n;
+		else 
+			set h=g;
+			call p(n-1,h);
+			set g=h;
+			call p(n-2,g);
+		endif;
+		write n;
+	    write g
+	end;
+Begin
+	set k=0; 
+	call p(3,x);
+end.

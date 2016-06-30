@@ -1,0 +1,22 @@
+program ex2;
+variables
+	integer x,y;
+procedure p;
+	variables
+		integer z;
+	begin
+		set z=x;
+		set x=x-1;
+		if z > 1 then
+			call p;
+		else 
+			set y=1;
+		endif;
+		set y=y*z
+	end;
+begin
+	read x;
+	call p;
+	write x;
+	write y
+end.

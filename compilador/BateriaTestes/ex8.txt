@@ -1,0 +1,34 @@
+program ex8;
+variables 
+	integer x,y;
+procedure p;
+	variables
+		integer z;
+	procedure q;
+		variables
+			integer s;
+		begin
+			set s=z-1;
+			set x=x-1;
+			if s > 1 then
+				call p;
+			else 
+				set y=1;
+			endif;
+			set y=y*s
+		end;
+	begin
+		set z=x; 
+		set x=x-1;
+		if z > 1 then 
+			call q;
+		else 
+			set y=1;
+		endif;
+		set y=y*z
+	end;
+begin
+	read x;
+	call p;
+	write y
+end.

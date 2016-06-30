@@ -15,15 +15,17 @@ public class Tester implements TesterConstants {
         public static ArrayList<String> tipoPrimitivo = new ArrayList<String>();
         public static ArrayList<ArrayList<String>> P = new ArrayList<ArrayList<String>>();
         public static Map<String, Map<Integer,Integer > > posVariaveis = new HashMap<String, Map<Integer,Integer > >();
+        public static Map<String, String> funtionLabels = new HashMap<String, String>();
         public static int contLabel = 0;
         public static int flag = 0;
         public static int nivel = 0;
-        public static int actualParam = 0;
-
-        public String criarRotulo(){
-                contLabel++;
-                return "L"+contLabel;
-        }
+        public static int actualVar = 0;
+        public static int actualParam = -3;
+        public static int indiceParametro = 0;
+        public static ArrayList<String> cmd;
+        public static ArrayList<String> ids = new ArrayList<String>();
+        public static ArrayList<Integer> dmem = new ArrayList<Integer>();
+        public static ArrayList<String> parametros = new ArrayList<String>();
 
         public static boolean isInteger(String str){
                 try {
@@ -53,7 +55,7 @@ public class Tester implements TesterConstants {
                         palavrasReservadas.add("begin");palavrasReservadas.add("function");palavrasReservadas.add("read");
                         palavrasReservadas.add("then");palavrasReservadas.add("call");palavrasReservadas.add("if");
                         palavrasReservadas.add("types");palavrasReservadas.add("do");palavrasReservadas.add("record");
-                        palavrasReservadas.add("until");palavrasReservadas.add("else");palavrasReservadas.add("parameterS");
+                        palavrasReservadas.add("until");palavrasReservadas.add("else");palavrasReservadas.add("parameters");
                         palavrasReservadas.add("return");palavrasReservadas.add("variables");palavrasReservadas.add("end");
                         palavrasReservadas.add("set");palavrasReservadas.add("while");palavrasReservadas.add("endif");
                         palavrasReservadas.add("procedure");palavrasReservadas.add("write");palavrasReservadas.add("enduntil");
@@ -142,12 +144,32 @@ void Program():
     throw new Error("Missing return statement in function");
   }
 
-//Programa e Bloco
+  static final public String criarRotulo() throws ParseException {
+                contLabel++;
+                {if (true) return "L"+contLabel;}
+    throw new Error("Missing return statement in function");
+  }
+
+  static final public String usaRotulo() throws ParseException {
+                {if (true) return "L"+contLabel;}
+    throw new Error("Missing return statement in function");
+  }
+
   static final public void addHash(String ident) throws ParseException {
                 Map myMap = new HashMap<Integer, Integer>();
-        myMap.put(nivel,actualParam);
-                actualParam++;
+        myMap.put(nivel,actualVar);
+                actualVar++;
                 posVariaveis.put(ident,myMap);
+  }
+
+  static final public void addHashParam(int nParametros) throws ParseException {
+                for(int i = 0; i < nParametros; i++) {
+                        Map myMap = new HashMap<Integer, Integer>();
+                myMap.put(nivel,actualParam);
+                        actualParam--;
+                        posVariaveis.put(ids.get(ids.size()-1),myMap);
+                        ids.remove(ids.size()-1);
+                }
   }
 
   static final public void addCmd(String label, String comando, String par1, String par2) throws ParseException {
@@ -175,6 +197,8 @@ void Program():
                         e.printStackTrace();
                 }
   }
+
+//Programa e Bloco
 
 //1.  Program ::= Header DeclSec Block
   static final public void Program() throws ParseException {
@@ -208,15 +232,21 @@ void Program():
     jj_consume_token(BEGIN);
     Statements();
     jj_consume_token(END);
+        addCmd("", "DMEM", "" + dmem.get(dmem.size()-1), "");
+        dmem.remove(dmem.size()-1);
   }
 
 //Declarações//
 
 //4.  DeclSec ::= TypeDeclSec VarDeclSec SubProgramDecls
   static final public void DeclSec() throws ParseException {
+        String rotulo = "";
     TypeDeclSec();
     VarDeclSec();
+                rotulo = criarRotulo();
+                addCmd("", "DSVS", rotulo, "");
     SubProgramDecls();
+                addCmd(rotulo, "NADA", "", "");
   }
 
 //5.  TypeDeclSec ::= [types TypeDecls]
@@ -329,8 +359,9 @@ void Program():
                 flag = 4;
       n = VarDecls("",false);
                 addCmd("", "AMEM", "" + n, "");
+                dmem.add(n);
                 flag = 0;
-                actualParam = 0;
+                actualVar = 0;
       break;
     default:
       jj_la1[3] = jj_gen;
@@ -478,12 +509,18 @@ void Program():
 
 //17. SubProgramDecl ::= (ProcDecl | FunctionDecl)
   static final public void SubProgramDecl() throws ParseException {
+        String rotulo;
+        int nParametros;
+                rotulo = criarRotulo();
+                addCmd(rotulo, "NADA", "", "");
+                nivel++;
+                addCmd("", "ENPR", "" + nivel, "");
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
     case PROCEDURE:
-      ProcDecl();
+      nParametros = ProcDecl();
+                addCmd("", "RTPR", "" + nParametros, "");
       break;
     case FUNCTION:
-                       addCmd("", "AMEM", "1", "");
       FunctionDecl();
       break;
     default:
@@ -491,16 +528,21 @@ void Program():
       jj_consume_token(-1);
       throw new ParseException();
     }
+                nivel--;
                 ts.removeLevelScope();
   }
 
 //18. ProcDecl ::= ProcHeader SubProgramDeclSec Block;
-  static final public void ProcDecl() throws ParseException {
+  static final public int ProcDecl() throws ParseException {
         String nameP;
+        int nParametros;
     nameP = ProcHeader();
-    SubProgramDeclSec(nameP);
+                funtionLabels.put(nameP, usaRotulo());
+    nParametros = SubProgramDeclSec(nameP);
     Block();
     jj_consume_token(PONTOVIRGULA);
+                {if (true) return nParametros;}
+    throw new Error("Missing return statement in function");
   }
 
 //19. ProcHeader ::= procedure identifier ;
@@ -517,7 +559,7 @@ void Program():
   }
 
 //20. SubProgramDeclSec ::= ParamDeclSec DeclSec
-  static final public void SubProgramDeclSec(String nameSubPrograma) throws ParseException {
+  static final public int SubProgramDeclSec(String nameSubPrograma) throws ParseException {
         int nParametros=0;
     nParametros = ParamDeclSec(nameSubPrograma);
                 if(ts.searchId(ts.getscopeAtual()-1,nameSubPrograma))
@@ -527,9 +569,11 @@ void Program():
                         ts.search(ts.getscopeAtual()-1, nameSubPrograma).getCategoria().set("NPARAMS", nParametros);
                 }
     DeclSec();
+                {if (true) return nParametros;}
+    throw new Error("Missing return statement in function");
   }
 
-//21. ParamDeclSec ::= [parameter ParamDecls]
+//21. ParamDeclSec ::= [parameters ParamDecls]
   static final public int ParamDeclSec(String nameSubPrograma) throws ParseException {
         int nParametros=0;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
@@ -541,6 +585,7 @@ void Program():
       jj_la1[9] = jj_gen;
       ;
     }
+                addHashParam(nParametros);
                 {if (true) return nParametros;}
     throw new Error("Missing return statement in function");
   }
@@ -550,7 +595,7 @@ void Program():
         int nParametros=0;
     label_5:
     while (true) {
-      ParamDecl(nParametros,nameSubPrograma);
+      nParametros = ParamDecl(nParametros,nameSubPrograma);
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
       case REAL:
       case INTEGER:
@@ -593,6 +638,7 @@ void Program():
                         Descritor subProgram = ts.search(ts.getscopeAtual()-1,nameSubPrograma);
                         subProgram.getCategoria().set(id.image.toString(),descParam);
                 }
+        ids.add(id.image.toString());
         {if (true) return nParametros+1;}
     throw new Error("Missing return statement in function");
   }
@@ -682,7 +728,7 @@ void Program():
 | call identifier ArgList)]*/
   static final public void Statement() throws ParseException {
         Token t;
-        String tipo1, tipo2, arrayType;
+        String tipo1, tipo2, arrayType, rotulo, rotulo2;
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
     case READ:
     case CALL:
@@ -694,16 +740,18 @@ void Program():
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
       case READ:
         t = jj_consume_token(READ);
-                        addCmd("", "LEIT", "", "");
-                        flag = 1;
+                addCmd("", "LEIT", "", "");
+                flag = 1;
         tipo1 = Variable(true, null, false);
-                                                    msgError(tipo1,t);
+                msgError(tipo1,t);
         break;
       case SET:
+                flag = 5;
         jj_consume_token(SET);
         tipo1 = Variable(true, null, false);
         t = jj_consume_token(IGUAL);
         tipo2 = Expression();
+                addCmd(cmd.get(0), cmd.get(1), cmd.get(2), cmd.get(3));
                 if(tipo1.compareToIgnoreCase("_NULO_")!=0)
                 {
                         //if(tipo1.compareToIgnoreCase("VETOR")!=0 && tipo1.compareToIgnoreCase("RECORD")!=0)
@@ -719,24 +767,36 @@ void Program():
         break;
       case WRITE:
         t = jj_consume_token(WRITE);
+                flag =2;
         tipo1 = Variable(true, null, false);
-                                                           msgError(tipo1,t);
+                addCmd("","IMPR","","");
+                msgError(tipo1,t);
         break;
       case IF:
         t = jj_consume_token(IF);
+                rotulo = criarRotulo();
         tipo1 = Condition();
         jj_consume_token(THEN);
         Statements();
+                rotulo2 = criarRotulo();
+                addCmd("", "DSVS", rotulo2, "");
+                addCmd(rotulo, "NADA", "", "");
         ElseClause();
-                                                                         msgCondError(tipo1,t);
+                msgCondError(tipo1,t);
+                addCmd(rotulo2, "NADA", "", "");
         break;
       case WHILE:
         t = jj_consume_token(WHILE);
+                rotulo = criarRotulo();
+                rotulo2 = criarRotulo();
+                addCmd(rotulo, "NADA", "", "");
         tipo1 = Condition();
         jj_consume_token(DO);
         Statements();
         jj_consume_token(ENDWHILE);
-                                                                        msgCondError(tipo1,t);
+                addCmd("", "DSVS", rotulo, "");
+                addCmd(rotulo2, "NADA", "", "");
+                msgCondError(tipo1,t);
         break;
       case UNTIL:
         t = jj_consume_token(UNTIL);
@@ -744,12 +804,32 @@ void Program():
         jj_consume_token(DO);
         Statements();
         jj_consume_token(ENDUNTIL);
-                                                                        msgCondError(tipo1,t);
+                msgCondError(tipo1,t);
         break;
       case CALL:
         jj_consume_token(CALL);
         t = Identifier(false);
-        ArgList(t);
+                Descritor identChpr=ts.search(0,t.image.toString());
+                if(identChpr == null)
+                        System.out.println("nullllaso");
+                if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0)
+                        addCmd("", "AMEN 1","", "");
+                //Olhamos si a function ou procedimento tem parametros
+                if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0||identChpr.getRotulo().compareToIgnoreCase("PROCEDURE")==0)
+                {
+                        Categoria dataTypeId=identChpr.getCategoria();
+                        int nPar=(int)dataTypeId.get("NPARAMS");
+                        for(int p=0;p<nPar;p++)
+                        {
+                                Categoria paraChpr=(Categoria)((Descritor)(dataTypeId.get(String.valueOf(p)))).getCategoria();
+                                parametros.add((String)paraChpr.get("TCLASS"));
+
+                        }
+                }
+        ArgList(t,true);
+                addCmd("", "CHPR", funtionLabels.get(t.image.toString()), "");
+                parametros = new ArrayList<String>();
+                indiceParametro = 0 ;
         break;
       default:
         jj_la1[13] = jj_gen;
@@ -804,7 +884,7 @@ void Program():
   }
 
 //32. ArgList ::= [“(“ Arguments “)�?]
-  static final public void ArgList(Token t) throws ParseException {
+  static final public void ArgList(Token t,boolean chpr) throws ParseException {
     switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
     case ABREPAR:
       jj_consume_token(ABREPAR);
@@ -837,6 +917,7 @@ void Program():
         jj_la1[17] = jj_gen;
         break label_8;
       }
+         indiceParametro++;
       jj_consume_token(VIRGULA);
       Argument();
     }
@@ -954,7 +1035,7 @@ void Program():
                         addCmd("", "CMDG", "", "");
                         break;
         }
-        addCmd("", "DSVF", "L1", "");
+        addCmd("", "DSVF", usaRotulo(), "");
         op = top.image.toString();
         if(tipo1.compareToIgnoreCase("STRING")==0 || tipo2.compareToIgnoreCase("STRING")==0 || tipo1.compareToIgnoreCase("_NULO_")==0 || tipo1.compareToIgnoreCase("_NULO_")==0){
                 System.out.println("Erro semantico na linha: "+top.beginLine+", coluna: "+top.beginColumn+".\u005cn\u005ctEsperado INTEGER ou REAL!");
@@ -1098,26 +1179,27 @@ void Program():
     if (jj_2_2(2)) {
       t = Identifier(false);
       ArgListSpecial();
-                        typeName = ts.search(0,t.image.toString()).getRotulo();
-                        if(typeName.compareToIgnoreCase("FUNCTION")==0)
-                                {if (true) return ((Descritor)ts.search(0,t.image.toString()).getCategoria().get("RTYPE")).getRotulo();}
-                        else
-                                {if (true) return ts.searchDataType(t.image.toString()).getRotulo();}
+                typeName = ts.search(0,t.image.toString()).getRotulo();
+                if(typeName.compareToIgnoreCase("FUNCTION")==0){
+                        {if (true) return ((Descritor)ts.search(0,t.image.toString()).getCategoria().get("RTYPE")).getRotulo();}
+                } else {
+                        {if (true) return ts.searchDataType(t.image.toString()).getRotulo();}
+                }
     } else {
       switch ((jj_ntk==-1)?jj_ntk():jj_ntk) {
       case FLOAT:
         t = jj_consume_token(FLOAT);
-                        addCmd("", "CRCT", t.image.toString(), "");
-                        {if (true) return "REAL";}
+                addCmd("", "CRCT", t.image.toString(), "");
+                {if (true) return "REAL";}
         break;
       case INTEIRO:
         t = jj_consume_token(INTEIRO);
-                        addCmd("", "CRCT", t.image.toString(), "");
-                        {if (true) return "INTEGER";}
+                addCmd("", "CRCT", t.image.toString(), "");
+                {if (true) return "INTEGER";}
         break;
       case CADEIA:
         jj_consume_token(CADEIA);
-                        {if (true) return "STRING";}
+                {if (true) return "STRING";}
         break;
       case NAO:
         aux = jj_consume_token(NAO);
@@ -1129,6 +1211,7 @@ void Program():
         jj_consume_token(FECPAR);
         break;
       case IDENTIFIER:
+                flag = 2;
         typeName = Variable(true, o,false);
         break;
       default:
@@ -1137,7 +1220,7 @@ void Program():
         throw new ParseException();
       }
     }
-         {if (true) return typeName;}
+                {if (true) return typeName;}
     throw new Error("Missing return statement in function");
   }
 
@@ -1162,21 +1245,58 @@ void Program():
       ;
     }
                 switch(flag){
-                        case 0 :        break;
-                        case 1 :        addCmd("", "ARMZ", ""+nivel, ""+posVariaveis.get(t.image.toString()).get(nivel));
-
+                        case 0 :
+                                break;
+                        case 1 :
+                                for(int i = nivel; i >=0; i--){
+                                        if(posVariaveis.get(t.image.toString()).get(i) != null){
+                                                addCmd("", "ARMZ", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
                                                 flag = 0;
                                                 break;
-
-                        case 2:         addCmd("", "CRVL", ""+nivel, ""+posVariaveis.get(t.image.toString()).get(nivel));
+                                        }
+                                }
+                                break;
+                        case 2:
+                                for(int i = nivel; i >=0; i--){
+                                        if(posVariaveis.get(t.image.toString()).get(i) != null)
+                                        {
+                                                if(parametros.size()!=0)
+                                                {
+                                                        if(parametros.get(indiceParametro).compareToIgnoreCase("REFERENCE")==0)
+                                                                addCmd("", "CREN", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+                                                        else
+                                                                addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
+                                                }
+                                                else
+                                                        addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
                                                 flag = 0;
                                                 break;
-
-                        case 3:         addCmd("", "CREN", ""+nivel, ""+posVariaveis.get(t.image.toString()).get(nivel));
+                                        }
+                                }
+                                break;
+                        case 3:
+                                for(int i = nivel; i >=0; i--){
+                                        if(posVariaveis.get(t.image.toString()).get(i) != null){
                                                 flag = 0;
                                                 break;
+                                        }
+                                }
+                                break;
+                        case 5:
+                                cmd = new ArrayList<String>();
+                                cmd.add("");
+                                cmd.add("ARMZ");
+                                for(int i = nivel; i >=0; i--){
+                                        if(posVariaveis.get(t.image.toString()).get(i) != null){
+                                                cmd.add("" + i);
+                                                cmd.add("" + posVariaveis.get(t.image.toString()).get(i));
+                                                break;
+                                        }
+                                }
+                                flag = 0;
+                                break;
+
                 }
-
                 if(inicial)// Si fuera la variable inicial
         {
             tipoVar=null;
@@ -1406,9 +1526,36 @@ void Program():
     finally { jj_save(4, xla); }
   }
 
-  static private boolean jj_3R_20() {
-    if (jj_scan_token(SET)) return true;
+  static private boolean jj_3R_36() {
+    if (jj_scan_token(CADEIA)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_35() {
+    if (jj_scan_token(INTEIRO)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_26() {
+    if (jj_3R_27()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_1() {
+    if (jj_3R_14()) return true;
+    if (jj_scan_token(PONTOVIRGULA)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_21() {
+    if (jj_scan_token(WRITE)) return true;
     if (jj_3R_17()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_25() {
+    if (jj_scan_token(CALL)) return true;
+    if (jj_3R_15()) return true;
     return false;
   }
 
@@ -1417,8 +1564,20 @@ void Program():
     return false;
   }
 
-  static private boolean jj_3R_26() {
-    if (jj_3R_27()) return true;
+  static private boolean jj_3R_24() {
+    if (jj_scan_token(UNTIL)) return true;
+    if (jj_3R_26()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_27() {
+    if (jj_3R_28()) return true;
+    return false;
+  }
+
+  static private boolean jj_3_3() {
+    if (jj_scan_token(DOT)) return true;
+    if (jj_3R_17()) return true;
     return false;
   }
 
@@ -1428,9 +1587,75 @@ void Program():
     return false;
   }
 
-  static private boolean jj_3_3() {
-    if (jj_scan_token(DOT)) return true;
+  static private boolean jj_3R_33() {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3_2()) {
+    jj_scanpos = xsp;
+    if (jj_3R_34()) {
+    jj_scanpos = xsp;
+    if (jj_3R_35()) {
+    jj_scanpos = xsp;
+    if (jj_3R_36()) {
+    jj_scanpos = xsp;
+    if (jj_3R_37()) {
+    jj_scanpos = xsp;
+    if (jj_3R_38()) {
+    jj_scanpos = xsp;
+    if (jj_3R_39()) return true;
+    }
+    }
+    }
+    }
+    }
+    }
+    return false;
+  }
+
+  static private boolean jj_3R_17() {
+    if (jj_3R_15()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_15() {
+    if (jj_scan_token(IDENTIFIER)) return true;
+    return false;
+  }
+
+  static private boolean jj_3_4() {
+    if (jj_scan_token(MENORIGUAL)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_29() {
+    if (jj_3R_30()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_20() {
+    if (jj_scan_token(SET)) return true;
     if (jj_3R_17()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_23() {
+    if (jj_scan_token(WHILE)) return true;
+    if (jj_3R_26()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_16() {
+    if (jj_scan_token(ABREPAR)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_28() {
+    if (jj_3R_29()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_30() {
+    if (jj_3R_31()) return true;
     return false;
   }
 
@@ -1472,81 +1697,18 @@ void Program():
     return false;
   }
 
-  static private boolean jj_3_4() {
-    if (jj_scan_token(MENORIGUAL)) return true;
+  static private boolean jj_3_5() {
+    if (jj_scan_token(MAIORIGUAL)) return true;
     return false;
   }
 
-  static private boolean jj_3R_27() {
-    if (jj_3R_28()) return true;
+  static private boolean jj_3R_39() {
+    if (jj_3R_17()) return true;
     return false;
   }
 
-  static private boolean jj_3R_33() {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3_2()) {
-    jj_scanpos = xsp;
-    if (jj_3R_34()) {
-    jj_scanpos = xsp;
-    if (jj_3R_35()) {
-    jj_scanpos = xsp;
-    if (jj_3R_36()) {
-    jj_scanpos = xsp;
-    if (jj_3R_37()) {
-    jj_scanpos = xsp;
-    if (jj_3R_38()) {
-    jj_scanpos = xsp;
-    if (jj_3R_39()) return true;
-    }
-    }
-    }
-    }
-    }
-    }
-    return false;
-  }
-
-  static private boolean jj_3R_16() {
+  static private boolean jj_3R_38() {
     if (jj_scan_token(ABREPAR)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_29() {
-    if (jj_3R_30()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_25() {
-    if (jj_scan_token(CALL)) return true;
-    if (jj_3R_15()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_15() {
-    if (jj_scan_token(IDENTIFIER)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_24() {
-    if (jj_scan_token(UNTIL)) return true;
-    if (jj_3R_26()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_23() {
-    if (jj_scan_token(WHILE)) return true;
-    if (jj_3R_26()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_17() {
-    if (jj_3R_15()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_28() {
-    if (jj_3R_29()) return true;
     return false;
   }
 
@@ -1556,45 +1718,8 @@ void Program():
     return false;
   }
 
-  static private boolean jj_3R_30() {
-    if (jj_3R_31()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_1() {
-    if (jj_3R_14()) return true;
-    if (jj_scan_token(PONTOVIRGULA)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_21() {
-    if (jj_scan_token(WRITE)) return true;
-    if (jj_3R_17()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_39() {
-    if (jj_3R_17()) return true;
-    return false;
-  }
-
-  static private boolean jj_3_5() {
-    if (jj_scan_token(MAIORIGUAL)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_38() {
-    if (jj_scan_token(ABREPAR)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_37() {
     if (jj_scan_token(NAO)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_36() {
-    if (jj_scan_token(CADEIA)) return true;
     return false;
   }
 
@@ -1613,11 +1738,6 @@ void Program():
     xsp = jj_scanpos;
     if (jj_3R_32()) jj_scanpos = xsp;
     if (jj_3R_33()) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_35() {
-    if (jj_scan_token(INTEIRO)) return true;
     return false;
   }
 

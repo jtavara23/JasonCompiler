@@ -25,6 +25,7 @@ public class Tester {
 	public static int nivel = 0;
 	public static int actualVar = 0;
 	public static int actualParam = -3;
+	public static int indiceParametro = 0;
 	public static ArrayList<String> cmd;
 	public static ArrayList<String> ids = new ArrayList<String>();
 	public static ArrayList<Integer> dmem = new ArrayList<Integer>();
@@ -917,24 +918,29 @@ void Statement():
 	}
 	| <CALL> t = Identifier(false)
 	{
-		Descritor identChpr=ts.searchDataType(t.image.toString());
+		Descritor identChpr=ts.search(0,t.image.toString());
+		if(identChpr == null)
+			System.out.println("nullllaso");
 		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0)
 			addCmd("", "AMEN 1","", "");
-		Olhamos si a function ou procedimento tem parametros
-		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0||ifidentChpr.getRotulo().compareToIgnoreCase("PROCEDURE")==0)
+		//Olhamos si a function ou procedimento tem parametros
+		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0||identChpr.getRotulo().compareToIgnoreCase("PROCEDURE")==0)
 		{
 			Categoria dataTypeId=identChpr.getCategoria();
 			int nPar=(int)dataTypeId.get("NPARAMS");
-			for(int p=0;p<nPar:p++)
+			for(int p=0;p<nPar;p++)
 			{
-				Categoria paraChpr=(Categoria)((Descriptor)(dataTypeId.get(p))).getCategoria();
-				parametros.add(paraChpr.get("TCLASS"));
+				Categoria paraChpr=(Categoria)((Descritor)(dataTypeId.get(String.valueOf(p)))).getCategoria();
+				parametros.add((String)paraChpr.get("TCLASS"));
+				
 			}
 		}		
 	}
 	ArgList(t,true)
 	{
 		addCmd("", "CHPR", funtionLabels.get(t.image.toString()), "");
+		parametros = new ArrayList<String>();
+		indiceParametro = 0 ;
 	}
 	)]
 }
@@ -995,7 +1001,12 @@ void ArgListSpecial():
 void Arguments(Token t):
 {}
 {
-    Argument() (<VIRGULA> Argument())*
+    Argument() 
+
+    (
+    	{indiceParametro++;}
+    <VIRGULA> Argument()
+    )*
 }
 
 //Expressões//
@@ -1234,11 +1245,13 @@ String Factor():/// FALTA SEGUIR IMPLENTANDO
 	}
 	|t = <FLOAT>
 	{
+		
 		addCmd("", "CRCT", t.image.toString(), "");
 		return "REAL";
 	}
 	|t = <INTEIRO>
 	{
+		
 		addCmd("", "CRCT", t.image.toString(), "");
 		return "INTEGER";
 	}
@@ -1291,12 +1304,11 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 					if(posVariaveis.get(t.image.toString()).get(i) != null)
 					{
 						if(parametros.size()!=0)
-						{
-							if(parametros.get(0).compareToIgnoreCase("REFERENCE")==0)
+						{	
+							if(parametros.get(indiceParametro).compareToIgnoreCase("REFERENCE")==0)
 								addCmd("", "CREN", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
 							else
 								addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));
-							parametros.remove(0);
 						}
 						else
 							addCmd("", "CRVL", "" + i, "" + posVariaveis.get(t.image.toString()).get(i));

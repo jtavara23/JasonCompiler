@@ -1,0 +1,39 @@
+program ex7;
+variables
+	integer x,y;
+procedure p;
+	variables
+		integer z;
+	begin
+		set z=x;
+		set x=x-1;
+		if z > 1 then
+			call p;
+		else
+			set y=1;
+		endif;
+		set y=y*z
+	end;
+procedure q;
+	variables
+		integer s,t;
+	begin
+		set s=x;
+		set t=x-1;
+		set x=t;
+		if s = 0 then
+			set y=1;
+		else 
+			if s/2*2=s then
+				call q;
+			else 
+				call p;
+			endif
+		endif;
+		set y=y*s
+	end;
+begin
+	read x;
+	call q;
+	write y
+end.

@@ -1,0 +1,23 @@
+program ex9;
+variables
+	integer x,y;
+procedure p;
+	parameters
+		integer t;
+	variables
+		integer z;
+	begin
+		if t > 1 then
+			call p(t-1);
+		else 
+			set y=1;
+		endif;
+		set z=y;
+		set y=z*t
+	end;
+begin
+	read x;
+	call p(x); 
+	write x; 
+	write y
+end.
