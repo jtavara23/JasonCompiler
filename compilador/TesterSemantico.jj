@@ -289,6 +289,8 @@ void addHash(String ident):
         myMap.put(nivel,actualVar);
 		actualVar++;
 		posVariaveis.put(ident,myMap);
+
+		System.out.println(ident + " "+nivel+ " actualVar");
 	}
 }
 
@@ -758,6 +760,8 @@ int ParamDecl(int nParametros,String nameSubPrograma):
 	id = Identifier(true)
 	<PONTOVIRGULA>
 	{
+
+
 		if(!palavrasReservadas.contains(id.image.toString().toLowerCase())&&!ts.existType(id.image.toString())&&!ts.existId(id.image.toString())&&ts.existType(dataT.image.toString())) {
 			ts.addDescritor(id.image.toString(), "PARAM");
 			Descritor descParam = ts.searchScopeAtual(id.image.toString());
@@ -765,6 +769,7 @@ int ParamDecl(int nParametros,String nameSubPrograma):
 			((Parametro)descParam.getCategoria()).set("TCLASS", classParam);
 			Descritor subProgram = ts.search(ts.getscopeAtual()-1,nameSubPrograma);
 			subProgram.getCategoria().set(id.image.toString(),descParam);
+			addHash(id.image.toString());
 		}
 	ids.add(id.image.toString());
 	return nParametros+1;
@@ -877,6 +882,7 @@ void Statement():
 	t = <WRITE> 
 	{
 		flag =2;
+
 	}
 	tipo1 = Variable(true, null, false) 
 	{
@@ -1301,6 +1307,7 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 				break;
 			case 2:
 				for(int i = nivel; i >=0; i--){
+					System.out.println("tan "+posVariaveis.size());
 					if(posVariaveis.get(t.image.toString()).get(i) != null)
 					{
 						if(parametros.size()!=0)

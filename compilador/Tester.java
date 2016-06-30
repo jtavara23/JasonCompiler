@@ -160,6 +160,8 @@ void Program():
         myMap.put(nivel,actualVar);
                 actualVar++;
                 posVariaveis.put(ident,myMap);
+
+                System.out.println(ident + " "+nivel+ " actualVar");
   }
 
   static final public void addHashParam(int nParametros) throws ParseException {
@@ -637,6 +639,7 @@ void Program():
                         ((Parametro)descParam.getCategoria()).set("TCLASS", classParam);
                         Descritor subProgram = ts.search(ts.getscopeAtual()-1,nameSubPrograma);
                         subProgram.getCategoria().set(id.image.toString(),descParam);
+                        addHash(id.image.toString());
                 }
         ids.add(id.image.toString());
         {if (true) return nParametros+1;}
@@ -1258,6 +1261,7 @@ void Program():
                                 break;
                         case 2:
                                 for(int i = nivel; i >=0; i--){
+                                        System.out.println("tan "+posVariaveis.size());
                                         if(posVariaveis.get(t.image.toString()).get(i) != null)
                                         {
                                                 if(parametros.size()!=0)
@@ -1526,11 +1530,6 @@ void Program():
     finally { jj_save(4, xla); }
   }
 
-  static private boolean jj_3R_36() {
-    if (jj_scan_token(CADEIA)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_35() {
     if (jj_scan_token(INTEIRO)) return true;
     return false;
@@ -1587,6 +1586,11 @@ void Program():
     return false;
   }
 
+  static private boolean jj_3_4() {
+    if (jj_scan_token(MENORIGUAL)) return true;
+    return false;
+  }
+
   static private boolean jj_3R_33() {
     Token xsp;
     xsp = jj_scanpos;
@@ -1617,18 +1621,13 @@ void Program():
     return false;
   }
 
-  static private boolean jj_3R_15() {
-    if (jj_scan_token(IDENTIFIER)) return true;
-    return false;
-  }
-
-  static private boolean jj_3_4() {
-    if (jj_scan_token(MENORIGUAL)) return true;
-    return false;
-  }
-
   static private boolean jj_3R_29() {
     if (jj_3R_30()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_16() {
+    if (jj_scan_token(ABREPAR)) return true;
     return false;
   }
 
@@ -1644,8 +1643,8 @@ void Program():
     return false;
   }
 
-  static private boolean jj_3R_16() {
-    if (jj_scan_token(ABREPAR)) return true;
+  static private boolean jj_3R_15() {
+    if (jj_scan_token(IDENTIFIER)) return true;
     return false;
   }
 
@@ -1738,6 +1737,11 @@ void Program():
     xsp = jj_scanpos;
     if (jj_3R_32()) jj_scanpos = xsp;
     if (jj_3R_33()) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_36() {
+    if (jj_scan_token(CADEIA)) return true;
     return false;
   }
 
