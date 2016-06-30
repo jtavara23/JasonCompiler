@@ -161,7 +161,8 @@ void Program():
                 actualVar++;
                 posVariaveis.put(ident,myMap);
 
-                System.out.println(ident + " "+nivel+ " actualVar");
+                //System.out.println(ident + " "+nivel+ " actualVar");
+
   }
 
   static final public void addHashParam(int nParametros) throws ParseException {
@@ -813,8 +814,9 @@ void Program():
         jj_consume_token(CALL);
         t = Identifier(false);
                 Descritor identChpr=ts.search(0,t.image.toString());
-                if(identChpr == null)
-                        System.out.println("nullllaso");
+                if(identChpr != null){
+
+
                 if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0)
                         addCmd("", "AMEN 1","", "");
                 //Olhamos si a function ou procedimento tem parametros
@@ -828,6 +830,7 @@ void Program():
                                 parametros.add((String)paraChpr.get("TCLASS"));
 
                         }
+                }
                 }
         ArgList(t,true);
                 addCmd("", "CHPR", funtionLabels.get(t.image.toString()), "");
@@ -1261,7 +1264,7 @@ void Program():
                                 break;
                         case 2:
                                 for(int i = nivel; i >=0; i--){
-                                        System.out.println("tan "+posVariaveis.size());
+                                        //System.out.println("tan "+posVariaveis.size());
                                         if(posVariaveis.get(t.image.toString()).get(i) != null)
                                         {
                                                 if(parametros.size()!=0)
@@ -1530,16 +1533,6 @@ void Program():
     finally { jj_save(4, xla); }
   }
 
-  static private boolean jj_3R_35() {
-    if (jj_scan_token(INTEIRO)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_26() {
-    if (jj_3R_27()) return true;
-    return false;
-  }
-
   static private boolean jj_3_1() {
     if (jj_3R_14()) return true;
     if (jj_scan_token(PONTOVIRGULA)) return true;
@@ -1689,15 +1682,15 @@ void Program():
     return false;
   }
 
+  static private boolean jj_3_5() {
+    if (jj_scan_token(MAIORIGUAL)) return true;
+    return false;
+  }
+
   static private boolean jj_3R_14() {
     Token xsp;
     xsp = jj_scanpos;
     if (jj_3R_18()) jj_scanpos = xsp;
-    return false;
-  }
-
-  static private boolean jj_3_5() {
-    if (jj_scan_token(MAIORIGUAL)) return true;
     return false;
   }
 
@@ -1708,12 +1701,6 @@ void Program():
 
   static private boolean jj_3R_38() {
     if (jj_scan_token(ABREPAR)) return true;
-    return false;
-  }
-
-  static private boolean jj_3R_22() {
-    if (jj_scan_token(IF)) return true;
-    if (jj_3R_26()) return true;
     return false;
   }
 
@@ -1732,6 +1719,12 @@ void Program():
     return false;
   }
 
+  static private boolean jj_3R_22() {
+    if (jj_scan_token(IF)) return true;
+    if (jj_3R_26()) return true;
+    return false;
+  }
+
   static private boolean jj_3R_31() {
     Token xsp;
     xsp = jj_scanpos;
@@ -1742,6 +1735,16 @@ void Program():
 
   static private boolean jj_3R_36() {
     if (jj_scan_token(CADEIA)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_35() {
+    if (jj_scan_token(INTEIRO)) return true;
+    return false;
+  }
+
+  static private boolean jj_3R_26() {
+    if (jj_3R_27()) return true;
     return false;
   }
 

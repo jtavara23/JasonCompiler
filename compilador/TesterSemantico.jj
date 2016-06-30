@@ -290,7 +290,7 @@ void addHash(String ident):
 		actualVar++;
 		posVariaveis.put(ident,myMap);
 
-		System.out.println(ident + " "+nivel+ " actualVar");
+		//System.out.println(ident + " "+nivel+ " actualVar");
 	}
 }
 
@@ -925,8 +925,9 @@ void Statement():
 	| <CALL> t = Identifier(false)
 	{
 		Descritor identChpr=ts.search(0,t.image.toString());
-		if(identChpr == null)
-			System.out.println("nullllaso");
+		if(identChpr != null){
+			
+		
 		if(identChpr.getRotulo().compareToIgnoreCase("FUNCTION")==0)
 			addCmd("", "AMEN 1","", "");
 		//Olhamos si a function ou procedimento tem parametros
@@ -940,6 +941,7 @@ void Statement():
 				parametros.add((String)paraChpr.get("TCLASS"));
 				
 			}
+		}
 		}		
 	}
 	ArgList(t,true)
@@ -1307,7 +1309,7 @@ String Variable(boolean inicial, Descritor tipoVar,boolean indexAnterior):
 				break;
 			case 2:
 				for(int i = nivel; i >=0; i--){
-					System.out.println("tan "+posVariaveis.size());
+					//System.out.println("tan "+posVariaveis.size());
 					if(posVariaveis.get(t.image.toString()).get(i) != null)
 					{
 						if(parametros.size()!=0)
